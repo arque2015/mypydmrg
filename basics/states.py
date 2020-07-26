@@ -25,8 +25,10 @@ class States(object):
 
     def __str__(self):
         template = 'States:\n'
-        for val, bss in zip(self._comps, self._basis.states):
-            template += '%.4f |%s>\n' % (val[0], bss)
+        template += 'Basis: %s\n' % self._basis.__class__.__name__
+        for idx in range(self._basis.dim):
+            template += '%.4f |%s>\n' %\
+                (self._comps[idx], self._basis.idx_to_state(idx))
         template += 'dim: %d' % self._basis.dim
         return template
 
@@ -34,3 +36,35 @@ class States(object):
     def components(self):
         '''各个分量'''
         return self._comps
+
+class SparseStates(object):
+    """
+    一个比较稀疏的态，利用dict保存状态而不是一个列向量
+    """
+    def __init__(self, bss: Basis, initdic: dict):
+        '''initdic中应该是（int, float）的对'''
+        self._basis = bss
+        self._comps_dic = initdic
+
+    def __str__(self):
+        template = 'SparseStates:\n'
+        template += 'Basis: %s\n' % self._basis.__class__.__name__
+        for key in self._comps_dic:
+            template += '%4f |%s>\n' % \
+                (self._comps_dic[key], self._basis.idx_to_state(key))
+        return template
+
+    @property
+    def components(self):
+        '''返回态的字典'''
+        comps = {}
+        for key in self._comps_dic:
+            comps[key] = self._comps_dic[key]
+        return comps
+
+    def to_dense(self):
+        '''转换成稠密的表示'''
+        initv = numpy.zeros([self._basis.dim, 1])
+        for idx in self._comps_dic:
+            initv[idx, 0] = self._comps_dic[idx]
+        return States(self._basis, initv)

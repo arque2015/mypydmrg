@@ -2,6 +2,7 @@
 和算符有关的功能
 """
 
+from typing import List
 import numpy
 from .basis import Basis
 from .states import States
@@ -88,7 +89,7 @@ class DenseTranslator(Operator):
         self._mat = numpy.zeros([dstbss.dim, srcbss.dim])
         if not initmat is None:
             self._mat += initmat
-            if not initdic is None: 
+            if not initdic is None:
                 print('使用initmat中的设置，跳过initdic')
 
         if initmat is None:
@@ -122,3 +123,36 @@ class DenseTranslator(Operator):
         newobs = DenseObservable(self._dstbasis, newmat)
         return newobs
 
+
+class SparseObservable(Operator):
+    """一个稀疏的算符，只有一个用来表示非零元的矩阵
+    初始化的时候，需要一个nonzero_r，这个应该是个整数数组
+    就是Basis中的第几个元素可以作用完毕以后非零
+    """
+    def __init__(self, initbss: Basis, nonzero_r: List[int]):
+        ''''''
+        super().__init__()
+        self._basis = initbss
+        self._ldim = initbss.dim
+        self._rdim = initbss.dim
+        self._nonzero_r = nonzero_r
+        self._val_iter = self._yield_val_iter()
+
+    def _yield_val_iter(self):
+        '''生成iter'''
+        for nonz in self._nonzero_r:
+            yield nonz
+
+    def ele(self, lidx, ridx):
+        '''得到某个元素'''
+        if not ridx in self._nonzero_r:
+            return 0.
+        coldic = self.lproduct(ridx)
+        if not lidx in coldic:
+            return 0.
+        return coldic[lidx]
+
+    def lproduct(self, ridx):
+        '''左作用到某一个basis上面，
+        要返回一个字典，（lidx，val）'''
+        raise NotImplementedError('SparseObsverable不实现这个功能')
