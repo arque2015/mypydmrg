@@ -22,7 +22,7 @@ class Basis(object):
     def __str__(self):
         template = \
         'Basis:\n\
-    |{name}> ... |{state1}>..|{stateN}> \n \
+    |{name}> ... \n|{state1}>..|{stateN}> \n \
     dim={dim}'
         vals = {
             'name': self._prefix,
@@ -42,6 +42,11 @@ class Basis(object):
         '''维度'''
         return self._dim
 
+    @property
+    def prefix(self):
+        '''前缀'''
+        return self._prefix
+
     def idx_to_state(self, idx):
         '''从编号到字符表示'''
         return self._states[idx]
@@ -56,7 +61,7 @@ class Basis(object):
 
     def rdirect_product(self, bs2, newpre: str):
         '''将两个basis进行直积运算, bs2放在右边
-        computational many particle physics (20.10)
+        computational many particle physics (21.10)
         '''
         newstas = []
         for lowbit in self._states:
@@ -65,10 +70,12 @@ class Basis(object):
         newbss = Basis(newpre, newstas)
         return newbss
 
-    def iter_staidx(self):
+    def iter_idx(self):
         '''返回迭代器'''
-        for sta in self._states:
-            yield self.state_to_idx(sta)
+        #for sta in self._states:
+        #    yield self.state_to_idx(sta)
+        for idx in range(self._dim):
+            yield idx
 
 class SiteBasis(Basis):
     """以格子的占据状态为基准的基
@@ -166,6 +173,13 @@ class SiteBasis(Basis):
         if len(self._states) != len(self.states):
             raise NotImplementedError('暂时不实现不一样的格子')
         newbss = SiteBasis(newpre, self._sites + bs2.sites, self._states)
+        return newbss
+
+    def ldirect_product(self, bs2, newpre):
+        '''注意这时两个basis的states一定要是相等的'''
+        if len(self._states) != len(self.states):
+            raise NotImplementedError('暂时不实现不一样的格子')
+        newbss = SiteBasis(newpre, bs2.sites + self._sites, self._states)
         return newbss
 
     def iter_staidx(self):
