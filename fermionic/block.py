@@ -3,62 +3,56 @@ left/right-block相关的功能
 """
 
 import numpy
-from basics.basis import SiteBasis, Basis
+from basics.basis import SiteBasis, Basis, ProdBasis
+from . import DEBUG_MODE
 
 class Block(Basis):
-    """一个block是包含了多个site的basis
-    创建一个block需要一个指明block中的分量由哪些SiteBasis中的基构成
-    比如[[0.5, 0, 0.5, 0], [...]]这时，二维数组的第一个指标是block的指标
-    二维数组的第二个指标会按照SiteBasis中的idx判断是哪个基
-    注意多使用Basis中的idx_to_state和state_to_idx而不要自己管理顺序
-    也不要和SiteBasis中的sitecode产生混淆，block中并没有和site有关系的
-    编号，只有一个总共的长度
+    """可以用来表示LeftBlock或者RightBlock
     """
-    def __init__(self, prefix, sitebss: SiteBasis, initmat):
-        ''''''
-        blocksta = ['%s_%d' % (prefix, idx1) for idx1 in range(len(initmat))]
-        super().__init__(prefix, blocksta)
+    def __init__(self, sitebss: SiteBasis, stanum, initmat=None):
+        if not DEBUG_MODE and initmat is not None:
+            print('不在debug_mode，initmat不会有作用')
+        #
         self._fock_basis = sitebss
-        self._fock_dict = dict(enumerate(initmat, 0))
+        self._dim = stanum
         self._block_len = len(sitebss.sites)
+        self._postfix = ''
+        _stridx = [str(idx) for idx in range(self._dim)]
+        super().__init__('phi^%d' % len(sitebss.sites), _stridx)
+        #
+        if DEBUG_MODE and initmat is not None:
+            self._fock_dict = dict(enumerate(initmat, 0))
 
     @property
     def block_len(self):
-        '''block中有几个site'''
+        '''这个LeftBlock有多少site在里面'''
         return self._block_len
 
     @property
     def fock_basis(self):
-        '''block基于的sitebasis'''
+        '''这个block在哪个SiteBasis上'''
         return self._fock_basis
 
     @property
     def fock_dict(self):
-        '''block在sitebasis上具体的表示'''
+        '''这个block在SiteBasis上的表示'''
+        if not DEBUG_MODE:
+            raise NotImplementedError('非debug模式不计算block')
         return self._fock_dict
 
-class LeftBlock(Block):
-    """表示LeftBlock computational many particle physics (21.6)
-    有个下角标alpha
-    依旧是每一行是一个新的基，每一行的内容是它在sitebasis上面的分量，
-    所以列必须是sitebasis.dim
-    """
-    def __init__(self, sitebss: SiteBasis, initmat):
-        super().__init__('phi^%d' % len(sitebss.sites), sitebss, initmat)
-
-    def idx_to_sitebasis(self, idx):
-        '''返回某个基在sitebasis下的表示'''
-        return self._fock_dict[idx]
-
     def __str__(self):
-        template = 'LeftBlock: |%s_alpha>\n' % self._prefix
+        template = '%s: |%s_%s>\n' %\
+            (self.__class__.__name__, self._prefix, self._postfix)
         template += 'dim: %d\n' % self.dim
         for idx in self.iter_idx():
             if idx != 0 and idx != self._dim - 1:
                 continue
-            template += '|%s_%d> :' % (self._prefix, idx)
-            template += '['
-            sitebss_arr = self.idx_to_sitebasis(idx)
+            template += '|%s_%d>' % (self._prefix, idx)
+            if not DEBUG_MODE:
+                template += '\n'
+                continue
+            template += ' :['
+            sitebss_arr = self._fock_dict[idx]
             for idx2 in range(self._fock_basis.dim):
                 if (idx2 % 4) == 0:
                     template += '\n'
@@ -67,59 +61,78 @@ class LeftBlock(Block):
             template += '\n]\n'
         return template
 
+class LeftBlock(Block):
+    """表示LeftBlock computational many particle physics (21.6)
+    这个对应的是等式左边，有个下角标alpha
+    依旧是每一行是一个新的基，每一行的内容是它在sitebasis上面的分量，
+    所以列必须是sitebasis.dim
+    """
+    def __init__(self, sitebss: SiteBasis, stanum, initmat=None):
+        super().__init__(sitebss, stanum, initmat)
+        self._postfix = 'alpha'
+
     def rdirect_product(self, bs2: SiteBasis, newpre=''):#pylint: disable=unused-argument
         '''将现在的block扩大一个site，（21.10）式
         注意|phi> X |s_n> = |phi,s_n> = sum_i a_i|s..s_i, s_n>
         而对于sitebasis是从小到大判断低位和高位的
         '''
-        return LeftBlockExtend(self._prefix, bs2.prefix, self, bs2)
+        return LeftBlockExtend(self, bs2)
 
 
-class LeftBlockExtend(Basis):
+class RightBlock(Block):
+    """表示RightBlock computational many particle physics (21.7)
+    有个下角标beta，和LeftBlock基本上是一样的
+    依旧是每一行是一个新的基，每一行的内容是它在sitebasis上面的分量，
+    所以列必须是sitebasis.dim
+    """
+    def __init__(self, sitebss: SiteBasis, stanum, initmat=None):
+        super().__init__(sitebss, stanum, initmat)
+        self._postfix = 'beta'
+
+
+    def ldirect_product(self, bs2: SiteBasis, newpre=''):#pylint: disable=unused-argument
+        '''将现在的block扩大一个site，（21.10）式
+        注意|phi> X |s_n> = |phi,s_n> = sum_i a_i|s..s_i, s_n>
+        而对于sitebasis是从小到大判断低位和高位的
+        '''
+        return RightBlockExtend(self, bs2)
+
+
+class LeftBlockExtend(ProdBasis):
     """扩大了一个site以后的LeftBlock，这个是（21.10）的左手边
     这时idxpair是类似SiteBasis中sitecode的东西"""
     def __init__(
             self,
-            prefix1, prefix2,
             lblk: LeftBlock,
             stbss: SiteBasis
         ):
         # 基本的属性
         self._lblk = lblk
         self._stbss = stbss
-        #self._idxpairs = []
-        self._stapairs = []
-        for idx in range(lblk.dim * stbss.dim):
-            idx1, idx2 = self.idx_to_idxpair(idx)
-            self._stapairs.append(
-                '%s_%d,%s' % (prefix1, idx1, stbss.idx_to_state(idx2))
-            )
-        #for idx2 in stbss.iter_idx():
-        #    for idx1 in lblk.iter_idx():
-        #        self._idxpairs.append((idx1, idx2))
-        #        self._stapairs.append(
-        #            '%s_%d,%s' % (prefix1, idx1, stbss.idx_to_state(idx2))
-        #        )
-        super().__init__(prefix1+'_alpha,'+prefix2, self._stapairs)
+        #
+        stadic = {}
+        stadic[lblk.prefix] = lblk.states
+        stadic[stbss.prefix] = stbss.states
+        super().__init__(stadic)
         # 一些额外的属性
         self._block_len = lblk.block_len + len(stbss.sites)
         self._fock_basis = lblk.fock_basis.rdirect_product(stbss, 's')
-        # fock_dict
-        self._fock_dict = numpy.zeros([self.dim, self._fock_basis.dim])
-        # |idx1, idx2>这个依旧以左边为低位
-        # 而|s..s_n, s_n+1>这个可以通过oldidx + s_n+1 * (st.dim)^n，直接计算出新的
-        # fock_basis中的newidx
-        #for idx2 in stbss.iter_idx():
-        #    for idx1 in lblk.iter_idx():
-        for idx in range(self._dim):
-            idx1, idx2 = self.idx_to_idxpair(idx)
-            comps = lblk.fock_dict[idx1]
-            oldlen = lblk.fock_basis.dim
-            for oldidx in range(oldlen):
-                #这个oldidx就是按照格子编号小为低位，编号大为高位计算的
-                #直接加上新加的格子为最高位就可以了
-                newidx = oldidx + idx2 * oldlen
-                self._fock_dict[idx][newidx] = comps[oldidx]
+        if DEBUG_MODE:
+            self._fock_dict = numpy.zeros([self.dim, self._fock_basis.dim])
+            # |idx1, idx2>这个依旧以左边为低位
+            # 而|s..s_n, s_n+1>这个可以通过oldidx + s_n+1 * (st.dim)^n，直接计算出新的
+            # fock_basis中的newidx
+            #for idx2 in stbss.iter_idx():
+            #    for idx1 in lblk.iter_idx():
+            for idx in range(self._dim):
+                idx1, idx2 = self.idx_to_idxpair(idx)
+                comps = lblk.fock_dict[idx1]
+                oldlen = lblk.fock_basis.dim
+                for oldidx in range(oldlen):
+                    #这个oldidx就是按照格子编号小为低位，编号大为高位计算的
+                    #直接加上新加的格子为最高位就可以了
+                    newidx = oldidx + idx2 * oldlen
+                    self._fock_dict[idx][newidx] = comps[oldidx]
 
     @property
     def lblk(self):
@@ -154,6 +167,9 @@ class LeftBlockExtend(Basis):
             if idx != 0 and idx != self._dim - 1 and idx != randshow:
                 continue
             template += '%d %s' % (idx, self.idx_to_state(idx))
+            if not DEBUG_MODE:
+                template += '\n'
+                continue
             for idx2 in range(self._fock_basis.dim):
                 if (idx2 % 4) == 0:
                     template += '\n'
@@ -163,48 +179,12 @@ class LeftBlockExtend(Basis):
         return template
 
 
-class RightBlock(Block):
-    """表示RightBlock computational many particle physics (21.7)
-    有个下角标beta，和LeftBlock基本上是一样的
-    依旧是每一行是一个新的基，每一行的内容是它在sitebasis上面的分量，
-    所以列必须是sitebasis.dim
-    """
-    def __init__(self, sitebss: SiteBasis, initmat):
-        super().__init__('phi^%d' % len(sitebss.sites), sitebss, initmat)
 
-    def idx_to_sitebasis(self, idx):
-        '''返回某个基在sitebasis下的表示'''
-        return self._fock_dict[idx]
 
-    def __str__(self):
-        template = 'RightBlock: |%s_beta>\n' % self._prefix
-        template += 'dim: %d\n' % self.dim
-        for idx in self.iter_idx():
-            if idx != 0 and idx != self._dim - 1:
-                continue
-            template += '|%s_%d> :' % (self._prefix, idx)
-            template += '['
-            sitebss_arr = self.idx_to_sitebasis(idx)
-            for idx2 in range(self._fock_basis.dim):
-                if (idx2 % 4) == 0:
-                    template += '\n'
-                template += '%.4f |%s>\t' %\
-                    (sitebss_arr[idx2], self._fock_basis.idx_to_state(idx2))
-            template += '\n]\n'
-        return template
-
-    def ldirect_product(self, bs2: SiteBasis, newpre=''):#pylint: disable=unused-argument
-        '''将现在的block扩大一个site，（21.10）式
-        注意|phi> X |s_n> = |phi,s_n> = sum_i a_i|s..s_i, s_n>
-        而对于sitebasis是从小到大判断低位和高位的
-        '''
-        return RightBlockExtend(self._prefix, bs2.prefix, self, bs2)
-
-class RightBlockExtend(Basis):
+class RightBlockExtend(ProdBasis):
     """扩大了一个site以后的RightBlock"""
     def __init__(
             self,
-            prefix1, prefix2,
             rblk: RightBlock,
             stbss: SiteBasis
         ):
@@ -213,31 +193,29 @@ class RightBlockExtend(Basis):
         self._stbss = stbss
         # 和LeftBlockExtend不同的是，这时新加的site是低位
         # 依旧是左边是低位
-        self._stapairs = []
-        for idx in range(rblk.dim * stbss.dim):
-            idx1, idx2 = self.idx_to_idxpair(idx)
-            self._stapairs.append(
-                '%s,%s_%d' % (stbss.idx_to_state(idx1), prefix1, idx2)
-            )
+        stadic = {}
+        stadic[stbss.prefix] = stbss.states
+        stadic[rblk.prefix] = rblk.states
         #
-        super().__init__(prefix2+','+prefix1+'_beta', self._stapairs)
+        super().__init__(stadic)
         # 一些额外的属性
         self._block_len = rblk.block_len + len(stbss.sites)
         self._fock_basis = rblk.fock_basis.ldirect_product(stbss, 's')
-        # fock_dict
-        self._fock_dict = numpy.zeros([self.dim, self._fock_basis.dim])
-        # |idx1, idx2>这个依旧以左边为低位
-        # 而|s..s_n, s_n+1>这个可以通过s_n+1 + oldidx * st.dim，直接计算出新的
-        # fock_basis中的newidx
-        for idx in range(self._dim):
-            idx1, idx2 = self.idx_to_idxpair(idx)
-            comps = rblk.fock_dict[idx2]
-            oldlen = rblk.fock_basis.dim
-            for oldidx in range(oldlen):
-                #这个oldidx是右边的block的sitebasis的维度
-                #在新的sitebasis中，oldidx是高位
-                newidx = idx1 + oldidx * stbss.dim
-                self._fock_dict[idx][newidx] = comps[oldidx]
+        # 
+        if DEBUG_MODE:
+            self._fock_dict = numpy.zeros([self.dim, self._fock_basis.dim])
+            # |idx1, idx2>这个依旧以左边为低位
+            # 而|s..s_n, s_n+1>这个可以通过s_n+1 + oldidx * st.dim，直接计算出新的
+            # fock_basis中的newidx
+            for idx in range(self._dim):
+                idx1, idx2 = self.idx_to_idxpair(idx)
+                comps = rblk.fock_dict[idx2]
+                oldlen = rblk.fock_basis.dim
+                for oldidx in range(oldlen):
+                    #这个oldidx是右边的block的sitebasis的维度
+                    #在新的sitebasis中，oldidx是高位
+                    newidx = idx1 + oldidx * stbss.dim
+                    self._fock_dict[idx][newidx] = comps[oldidx]
 
     @property
     def rblk(self):
