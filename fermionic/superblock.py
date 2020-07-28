@@ -4,38 +4,45 @@ computational many particle physics （21.23） （21.8）
 """
 
 import numpy
-from basics.basis import Basis
+from collections import namedtuple
+from basics.basis import ProdBasis
 from .block import LeftBlockExtend, RightBlockExtend
+from . import DEBUG_MODE
 
-class SuperBlockExtend(Basis):
+class SuperBlockExtend(ProdBasis):
     """将一个LeftBlockExtend和一个RightBlockExtend
-    直积成一个superblock"""
+    直积成一个superblock，这时为了方便，直接拆成4个，如果想要得到每个idx
+    使用ProdBasis.idx_to_sitecode或者self.idx_to_idxtuple
+    如果向和LeftBlockExtend中的idx对应，可以使用LeftBlockExtend中的函数
+    RightBlockExtend同理
+    ``````
+    注意之前的LeftBlockExtend都是LeftBlock + 单个site（Right也一样）
+    """
     def __init__(self, lbke: LeftBlockExtend, rbke: RightBlockExtend):
         self._lbke = lbke
         self._rbke = rbke
+        self._lblk = lbke.lblk
+        self._lsite = lbke.stbss
+        self._rsite = rbke.stbss
+        self._rblk = rbke.rblk
         #
-        self._stapairs = []
-        llen = lbke.lblk.block_len
-        rlen = rbke.rblk.block_len
-        for idx in range(lbke.dim * rbke.dim):
-            idx1, idx2 = self.idx_to_idxpair(idx)
-            lblkidx, lstidx = self._lbke.idx_to_idxpair(idx1)
-            rstidx, rblkidx = self._rbke.idx_to_idxpair(idx2)
-            self._stapairs.append(
-                'phi^%d_%d,%s,%s,phi^%d_%d' %\
-                    (llen, lblkidx, lbke.stbss.idx_to_state(lstidx),\
-                        rbke.stbss.idx_to_state(rstidx), rlen, rblkidx)
-            )
+        stadic = {}
+        #注意SiteBasis和Block的prefix没有做特别的区分
+        #在这里作出一些区分
+        stadic['l'+self._lblk.prefix] = self._lblk.states
+        #SiteBasis的states是单个site的所有状态
+        stadic['l'+self._lsite.prefix] = self._lsite.states
+        stadic['r'+self._rsite.prefix] = self._rsite.states
         #
-        super().__init__(
-            'phi^%d_alpha,%s,%s,phi^%d_beta' %\
-                (llen, lbke.stbss.prefix, rbke.stbss.prefix, rlen),
-            self._stapairs
-            )
+        stadic['r'+self._rblk.prefix] = self._rblk.states
+        #
+        super().__init__(stadic)
         #
         self._block_len = lbke.block_len + rbke.block_len
-        self._fock_basis = None#没有必要设置这个东西
-        self._fock_dict = None#不必要设置
+        #
+        if DEBUG_MODE:
+            self._fock_basis = None#没有必要设置这个东西
+            self._fock_dict = None#不必要设置
 
     @property
     def block_len(self):
@@ -43,26 +50,20 @@ class SuperBlockExtend(Basis):
         return self._block_len
 
     def __str__(self):
-        template = 'SuperBlockExtend:\ndim: %d' % self._dim
-        #randshow = numpy.random.randint(0, self._dim)
-        llen = self._lbke.lblk.block_len
-        rlen = self._rbke.rblk.block_len
+        template = 'SuperBlockExtend:\ndim: %d\n' % self._dim
+        template += 'block_len: %d\n' % self._block_len
         for idx in self.iter_idx():
-            idx1, idx2 = self.idx_to_idxpair(idx)
-            lblkidx, lstidx = self._lbke.idx_to_idxpair(idx1)
-            rstidx, rblkidx = self._rbke.idx_to_idxpair(idx2)
-            template += 'phi^%d_%d,%s,%s,phi^%d_%d\n' %\
-                        (llen, lblkidx, self._lbke.stbss.idx_to_state(lstidx),\
-                            self._rbke.stbss.idx_to_state(rstidx), rlen, rblkidx)
+            idxtup = self.idx_to_idxtuple(idx)
+            template += '|%s,%s,%s,%s>\n' %\
+                        (self._lblk.idx_to_state(idxtup.lftbkid),\
+                            self._lsite.idx_to_state(idxtup.lftstid),\
+                                self._rsite.idx_to_state(idxtup.rgtstid),\
+                                    self._rblk.idx_to_state(idxtup.rgtbkid))
         return template
 
-    def idx_to_idxpair(self, idx):
-        '''Left是低位，Right是高位'''
-        idxf = numpy.float(idx)
-        idx2 = numpy.floor(idxf / self._lbke.dim).astype(numpy.int)
-        idx1 = idx - idx2 * self._lbke.dim
-        return idx1, idx2
-
-    def idxpair_to_idx(self, idx1, idx2):
-        '''这时的idxpair里面是LeftBlockExtend和RightBlockExtend的idx'''
-        return idx1 + idx2 * self._lbke.dim
+    def idx_to_idxtuple(self, idx):
+        '''把一个编号转成四个数值的tuple'''
+        itup = namedtuple('idxtuple', ['lftbkid', 'lftstid', 'rgtstid', 'rgtbkid'])
+        scd = self.idx_to_sitecode(idx)
+        idxtup = itup(scd[0], scd[1], scd[2], scd[3])
+        return idxtup

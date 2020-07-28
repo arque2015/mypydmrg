@@ -94,6 +94,7 @@ class LeftBlock(Block):
         而对于sitebasis是从小到大判断低位和高位的
         ``````
         注意在SiteBasis中会进行格子编号的排序，这里一定要右作用一个更大的
+        注意使用单个site的SiteBasis
         '''
         return LeftBlockExtend(self, bs2)
 
@@ -115,6 +116,7 @@ class RightBlock(Block):
         而对于sitebasis是从小到大判断低位和高位的
         ``````
         注意在SiteBasis中会进行格子编号的排序，这里一定要左作用一个更小的
+        注意使用单个site的SiteBasis
         '''
         return RightBlockExtend(self, bs2)
 
@@ -133,7 +135,7 @@ class LeftBlockExtend(ProdBasis):
         #
         stadic = {}
         stadic[lblk.prefix] = lblk.states
-        stadic[stbss.prefix] = stbss.states
+        stadic[stbss.prefix] = stbss.states#SiteBasis的states是单个site的所有状态
         super().__init__(stadic)
         # 一些额外的属性
         self._block_len = lblk.block_len + len(stbss.sites)
@@ -234,7 +236,7 @@ class RightBlockExtend(ProdBasis):
         # 和LeftBlockExtend不同的是，这时新加的site是低位
         # 依旧是左边是低位
         stadic = {}
-        stadic[stbss.prefix] = stbss.states
+        stadic[stbss.prefix] = stbss.states#SiteBasis的states是单个site的所有状态
         stadic[rblk.prefix] = rblk.states
         #
         super().__init__(stadic)

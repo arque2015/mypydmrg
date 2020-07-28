@@ -102,9 +102,7 @@ class SiteBasis(object):
         self._dim = numpy.power(len(states), len(self._sites))
         #
         #每个格子是一样的，有一个就行了
-        self._states2idx = self._states2idx = dict(
-            [(sta, idx) for idx, sta in enumerate(self._states, 0)]
-            )
+        self._states2idx = None
 
 
     def __str__(self):
@@ -169,6 +167,10 @@ class SiteBasis(object):
 
     def state_to_idx(self, sta: str):
         '''把一个字符转换成态'''
+        if self._states2idx is None:
+            self._states2idx = self._states2idx = dict(
+                [(sta, idx) for idx, sta in enumerate(self._states, 0)]
+                )
         sta_list = sta.split(',')
         stadic = {}
         for sta_idx in sta_list:
@@ -248,11 +250,7 @@ class ProdBasis(object):
         #找到statedic[prefix][i] = 's'中的 dict: s -> i
         #在state_to_idx中演示了，通过prefix字符串找到prefixidx，
         #从而找到state字符串到stateidx的字典
-        self._states2idx = [None] * len(self._prefixs)
-        for idx, pre in enumerate(self._prefixs, 0):
-            self._states2idx[idx] = dict(
-                [(sta, idx2) for idx2, sta in enumerate(statedic[pre], 0)]
-            )
+        self._states2idx = None
 
     def __str__(self):
         template = 'Block: \n'
@@ -313,6 +311,12 @@ class ProdBasis(object):
 
     def state_to_idx(self, sta: str):
         '''从字符串到idx'''
+        if self._states2idx is None:
+            self._states2idx = [None] * len(self._prefixs)
+            for idx, pre in enumerate(self._prefixs, 0):
+                self._states2idx[idx] = dict(
+                    [(sta, idx2) for idx2, sta in enumerate(self._statedic[pre], 0)]
+                )
         sta_list = sta.split(',')
         #和SiteBasis不一样，这个prefix放在下划线的左边
         staidx = [0] * len(self._prefixs)
