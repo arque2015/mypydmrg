@@ -22,6 +22,11 @@ class Block(Basis):
         #
         if DEBUG_MODE and initmat is not None:
             self._fock_dict = dict(enumerate(initmat, 0))
+        #computional many particle physics (21.6) (21,7)
+        #需要有一个phi(alpha, n)来维持和上一个block的关系
+        #从而实现（21.19）的算符的传递
+        self._sub_block = None
+        self._sub_phival = None
 
     @property
     def block_len(self):
@@ -44,6 +49,7 @@ class Block(Basis):
         template = '%s: |%s_%s>\n' %\
             (self.__class__.__name__, self._prefix, self._postfix)
         template += 'dim: %d\n' % self.dim
+        template += 'block_len: %d\n' % self._block_len
         for idx in self.iter_idx():
             if idx != 0 and idx != self._dim - 1:
                 continue
@@ -61,6 +67,17 @@ class Block(Basis):
             template += '\n]\n'
         return template
 
+    def set_sub_block(self, blkext, phival):
+        '''设置sub_block
+        phival是一个二维数组，第一个指标是和自身的维度一样的，
+        代表的是21.6，中左侧的alpha，第二个指标是（alpha', s^n)，
+        大小和LeftBlockExtend.dim一样，
+        具体数值是LeftBlockExtend中的idx_to_idxpair拆分出来的。
+        RightBlock和LeftBlock是类似的，但是block和site的顺序是不一样的
+        '''
+        self._sub_block = blkext
+        self._sub_phival = phival
+
 class LeftBlock(Block):
     """表示LeftBlock computational many particle physics (21.6)
     这个对应的是等式左边，有个下角标alpha
@@ -75,6 +92,8 @@ class LeftBlock(Block):
         '''将现在的block扩大一个site，（21.10）式
         注意|phi> X |s_n> = |phi,s_n> = sum_i a_i|s..s_i, s_n>
         而对于sitebasis是从小到大判断低位和高位的
+        ``````
+        注意在SiteBasis中会进行格子编号的排序，这里一定要右作用一个更大的
         '''
         return LeftBlockExtend(self, bs2)
 
@@ -94,6 +113,8 @@ class RightBlock(Block):
         '''将现在的block扩大一个site，（21.10）式
         注意|phi> X |s_n> = |phi,s_n> = sum_i a_i|s..s_i, s_n>
         而对于sitebasis是从小到大判断低位和高位的
+        ``````
+        注意在SiteBasis中会进行格子编号的排序，这里一定要左作用一个更小的
         '''
         return RightBlockExtend(self, bs2)
 
@@ -162,6 +183,7 @@ class LeftBlockExtend(ProdBasis):
 
     def __str__(self):
         template = 'LeftBlockExtend: \ndim: %d\n' % self._dim
+        template += 'block_len: %d\n' % self._block_len
         randshow = numpy.random.randint(0, self._dim)
         for idx in self.iter_idx():
             if idx != 0 and idx != self._dim - 1 and idx != randshow:
@@ -179,6 +201,24 @@ class LeftBlockExtend(ProdBasis):
         return template
 
 
+    def merge_to_block(self, phival):
+        '''将这个|phi^n-1>X|s^n>合并成|phi^n>
+        phival需要是一个二维数组，行数是合并后保留的基的数量，
+        列数需要与self.dim一致，注意在计算phival的过程中，
+        需要用到phi^n-1, s^n的时候，尽量用self.idx_to_idxpair
+        保证结果的一致性
+        '''
+        newstbs = self._fock_basis
+        stnum = len(phival)
+        newmat = None
+        if DEBUG_MODE:
+            #新的initmat应该包含stnum行，fock_basis.dim列
+            #new_fock_dict[phi^n, sitebasis] =\
+            #sum_phi^n-1{phival[phi^n, phi^n-1] * fock_dict[phi^n-1, sitebasis]}
+            newmat = numpy.matmul(phival, self._fock_dict)
+        newlb = LeftBlock(newstbs, stnum, initmat=newmat)
+        newlb.set_sub_block(self, phival)
+        return newlb
 
 
 class RightBlockExtend(ProdBasis):
@@ -201,7 +241,7 @@ class RightBlockExtend(ProdBasis):
         # 一些额外的属性
         self._block_len = rblk.block_len + len(stbss.sites)
         self._fock_basis = rblk.fock_basis.ldirect_product(stbss, 's')
-        # 
+        #
         if DEBUG_MODE:
             self._fock_dict = numpy.zeros([self.dim, self._fock_basis.dim])
             # |idx1, idx2>这个依旧以左边为低位
@@ -245,6 +285,7 @@ class RightBlockExtend(ProdBasis):
 
     def __str__(self):
         template = 'RightBlockExtend: \ndim: %d\n' % self._dim
+        template += 'block_len: %d\n' % self._block_len
         randshow = numpy.random.randint(0, self._dim)
         for idx in self.iter_idx():
             if idx != 0 and idx != self._dim - 1 and idx != randshow:
@@ -257,3 +298,22 @@ class RightBlockExtend(ProdBasis):
                     (self._fock_dict[idx][idx2], self._fock_basis.idx_to_state(idx2))
             template += '\n'
         return template
+
+    def merge_to_block(self, phival):
+        '''将这个|s^n-1>X|phi^n>合并成|phi^n-1>
+        phival需要是一个二维数组，行数是合并后保留的基的数量，
+        列数需要与self.dim一致，注意在计算phival的过程中，
+        需要用到phi^n, s^n-1的时候，尽量用self.idx_to_idxpair
+        保证结果的一致性
+        '''
+        newstbs = self._fock_basis
+        stnum = len(phival)
+        newmat = None
+        if DEBUG_MODE:
+            #新的initmat应该包含stnum行，fock_basis.dim列
+            #new_fock_dict[phi^n-1, sitebasis] =\
+            #sum_phi^n{phival[phi^n-1, phi^n] * fock_dict[phi^n, sitebasis]}
+            newmat = numpy.matmul(phival, self._fock_dict)
+        newrb = RightBlock(newstbs, stnum, initmat=newmat)
+        newrb.set_sub_block(self, phival)
+        return newrb
