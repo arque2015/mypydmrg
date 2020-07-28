@@ -4,7 +4,9 @@ dmrg算法演示
 TODO:
 ------
 
-+ matrix product还有block的表示
++ ~~matrix product还有block的表示~~
+
++ 实现21.11到21.15的算符表示，主要实现和Hubbard模型相关的算符
 
 + 现在要实现21.6，21.7的公式，一个left/right-block里面要保存好等式右边的  
 内容，以实现21.15-21.19中，利用上一个block的算符计算这一个block的算符

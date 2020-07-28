@@ -9,7 +9,7 @@ from . import DEBUG_MODE
 class Block(Basis):
     """可以用来表示LeftBlock或者RightBlock
     """
-    def __init__(self, sitebss: SiteBasis, stanum, initmat=None):
+    def __init__(self, sitebss: SiteBasis, stanum, initmat, partnum):
         if not DEBUG_MODE and initmat is not None:
             print('不在debug_mode，initmat不会有作用')
         #
@@ -27,6 +27,9 @@ class Block(Basis):
         #从而实现（21.19）的算符的传递
         self._sub_block = None
         self._sub_phival = None
+        #在(21.6)(21.7)中这个phival会有一些额外的限制，这里把
+        #Sz量子数考虑上，因为这涉及费米符号问题
+        self._pnum_list = partnum
 
     @property
     def block_len(self):
@@ -53,11 +56,13 @@ class Block(Basis):
         for idx in self.iter_idx():
             if idx != 0 and idx != self._dim - 1:
                 continue
-            template += '|%s_%d>' % (self._prefix, idx)
+            template += '|%s_%d>\n' % (self._prefix, idx)
+            if self._pnum_list is not None:
+                template += 'particle number: %d\n' % self._pnum_list[idx]
             if not DEBUG_MODE:
                 template += '\n'
                 continue
-            template += ' :['
+            template += '['
             sitebss_arr = self._fock_dict[idx]
             for idx2 in range(self._fock_basis.dim):
                 if (idx2 % 4) == 0:
@@ -78,14 +83,15 @@ class Block(Basis):
         self._sub_block = blkext
         self._sub_phival = phival
 
+
 class LeftBlock(Block):
     """表示LeftBlock computational many particle physics (21.6)
     这个对应的是等式左边，有个下角标alpha
     依旧是每一行是一个新的基，每一行的内容是它在sitebasis上面的分量，
     所以列必须是sitebasis.dim
     """
-    def __init__(self, sitebss: SiteBasis, stanum, initmat=None):
-        super().__init__(sitebss, stanum, initmat)
+    def __init__(self, sitebss: SiteBasis, stanum, initmat=None, partnum=None):
+        super().__init__(sitebss, stanum, initmat, partnum)
         self._postfix = 'alpha'
 
     def rdirect_product(self, bs2: SiteBasis, newpre=''):#pylint: disable=unused-argument
@@ -105,8 +111,8 @@ class RightBlock(Block):
     依旧是每一行是一个新的基，每一行的内容是它在sitebasis上面的分量，
     所以列必须是sitebasis.dim
     """
-    def __init__(self, sitebss: SiteBasis, stanum, initmat=None):
-        super().__init__(sitebss, stanum, initmat)
+    def __init__(self, sitebss: SiteBasis, stanum, initmat=None, partnum=None):
+        super().__init__(sitebss, stanum, initmat, partnum)
         self._postfix = 'beta'
 
 
@@ -203,7 +209,7 @@ class LeftBlockExtend(ProdBasis):
         return template
 
 
-    def merge_to_block(self, phival):
+    def merge_to_block(self, phival, pnum_list=None):
         '''将这个|phi^n-1>X|s^n>合并成|phi^n>
         phival需要是一个二维数组，行数是合并后保留的基的数量，
         列数需要与self.dim一致，注意在计算phival的过程中，
@@ -218,7 +224,7 @@ class LeftBlockExtend(ProdBasis):
             #new_fock_dict[phi^n, sitebasis] =\
             #sum_phi^n-1{phival[phi^n, phi^n-1] * fock_dict[phi^n-1, sitebasis]}
             newmat = numpy.matmul(phival, self._fock_dict)
-        newlb = LeftBlock(newstbs, stnum, initmat=newmat)
+        newlb = LeftBlock(newstbs, stnum, initmat=newmat, partnum=pnum_list)
         newlb.set_sub_block(self, phival)
         return newlb
 
@@ -293,6 +299,9 @@ class RightBlockExtend(ProdBasis):
             if idx != 0 and idx != self._dim - 1 and idx != randshow:
                 continue
             template += '%d %s' % (idx, self.idx_to_state(idx))
+            if not DEBUG_MODE:
+                template += '\n'
+                continue
             for idx2 in range(self._fock_basis.dim):
                 if (idx2 % 4) == 0:
                     template += '\n'
@@ -301,7 +310,7 @@ class RightBlockExtend(ProdBasis):
             template += '\n'
         return template
 
-    def merge_to_block(self, phival):
+    def merge_to_block(self, phival, pnum_list=None):
         '''将这个|s^n-1>X|phi^n>合并成|phi^n-1>
         phival需要是一个二维数组，行数是合并后保留的基的数量，
         列数需要与self.dim一致，注意在计算phival的过程中，
@@ -316,6 +325,6 @@ class RightBlockExtend(ProdBasis):
             #new_fock_dict[phi^n-1, sitebasis] =\
             #sum_phi^n{phival[phi^n-1, phi^n] * fock_dict[phi^n, sitebasis]}
             newmat = numpy.matmul(phival, self._fock_dict)
-        newrb = RightBlock(newstbs, stnum, initmat=newmat)
+        newrb = RightBlock(newstbs, stnum, initmat=newmat, partnum=pnum_list)
         newrb.set_sub_block(self, phival)
         return newrb
