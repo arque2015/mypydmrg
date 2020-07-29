@@ -4,8 +4,8 @@
 
 import numpy
 from basics.operator import Operator
-from basics.basis import SiteBasis, ProdBasis
-from .block import Block
+from basics.basis import SiteBasis
+from .block import Block, LeftBlockExtend, RightBlockExtend
 
 class CreateOperator(Operator):
     """产生算符需要制定格子坐标，自旋，所在的基，
@@ -32,11 +32,17 @@ class CreateOperator(Operator):
         if not stidx in stbss.sites:
             raise ValueError('create_from_sitebasis位置不在基里面')
         mat = numpy.zeros([stbss.dim, stbss.dim])
+        part_list = [0, 1, 1, 2]
         stbsidx = stbss.sites.index(stidx)
         for rstc in stbss.iter_idx():
             #产生算符在sitebasis上，spin=1会把o->u, d->f，其余都是0
             #spin=-1会把o->d, u->f其余都是0
             stcode = stbss.idx_to_sitecode(rstc)
+            #统计stbsidx左边有多少粒子，确定符号
+            #sitebasis中的顺序是从小到大排好的
+            _particle_num = 0
+            for stidx in range(stbsidx):
+                _particle_num += part_list[stcode[stidx]]
             if spin == 1:
                 if stcode[stbsidx] == 0:
                     stcode[stbsidx] = 1
@@ -52,23 +58,31 @@ class CreateOperator(Operator):
                 else:#不是o或者u，直接回循环，不赋值
                     continue
             lstc = stbss.sitecode_to_idx(stcode)
-            mat[lstc, rstc] = 1.
+            mat[lstc, rstc] = 1. if _particle_num % 2 == 0 else -1.
         return CreateOperator(stidx, spin, stbss, mat)
 
     @staticmethod
-    def create_from_prodbasis(prodbss: ProdBasis, operdic, stidx, spin):
+    def create_from_leftblockextend(lbke: LeftBlockExtend, operdic, stidx, spin):
         '''从prodbasis创建产生算符'''
-        mat = numpy.zeros([prodbss.dim, prodbss.dim])
-        operlist = [operdic[pre].mat for pre in prodbss.prefixs]
-        for ridx in prodbss.iter_idx():
-            for lidx in prodbss.iter_idx():
-                rstc = prodbss.idx_to_sitecode(ridx)
-                lstc = prodbss.idx_to_sitecode(lidx)
+        if lbke.spin_nums is None:
+            raise ValueError('LeftBlockExtend没有粒子数')
+        mat = numpy.zeros([lbke.dim, lbke.dim])
+        operlist = [operdic[pre].mat for pre in lbke.prefixs]
+        for ridx in lbke.iter_idx():
+            for lidx in lbke.iter_idx():
+                rstc = lbke.idx_to_sitecode(ridx)
+                lstc = lbke.idx_to_sitecode(lidx)
+                #lbke中的site只有一个产生或消灭算符
+                #所以只需要计算这个site移动到最右经历了几个粒子
+                _part_num = numpy.sum(lbke.lblk.spin_nums[rstc[0]])
+                _sign = 1.
+                if isinstance(operlist[1], CreateOperator):
+                    _sign = 1. if _part_num % 2 == 0 else -1.
                 #21.15，把sitecode对应的乘起来
-                mat[lidx, ridx] =\
+                mat[lidx, ridx] = _sign *\
                     numpy.prod([opm[lstc[opi], rstc[opi]]\
                         for opi, opm in enumerate(operlist)])
-        return CreateOperator(stidx, spin, prodbss, mat)
+        return CreateOperator(stidx, spin, lbke, mat)
 
     @staticmethod
     def create_from_merge_prod(

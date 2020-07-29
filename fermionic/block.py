@@ -29,7 +29,12 @@ class Block(Basis):
         self._sub_phival = None
         #在(21.6)(21.7)中这个phival会有一些额外的限制，这里把
         #Sz量子数考虑上，因为这涉及费米符号问题
-        self._pnum_list = partnum
+        self._spin_nums = None
+        if partnum is not None:
+            if not isinstance(partnum, numpy.ndarray):
+                self._spin_nums = numpy.array(partnum)
+            else:
+                self._spin_nums = partnum
 
     @property
     def block_len(self):
@@ -48,6 +53,11 @@ class Block(Basis):
             raise NotImplementedError('非debug模式不计算block')
         return self._fock_dict
 
+    @property
+    def spin_nums(self):
+        '''自旋本征值，Block应该取和自旋量子数算符的共同本正态'''
+        return self._spin_nums
+
     def __str__(self):
         template = '%s: |%s_%s>\n' %\
             (self.__class__.__name__, self._prefix, self._postfix)
@@ -57,8 +67,8 @@ class Block(Basis):
             if idx != 0 and idx != self._dim - 1:
                 continue
             template += '|%s_%d>\n' % (self._prefix, idx)
-            if self._pnum_list is not None:
-                template += 'particle number: %d\n' % self._pnum_list[idx]
+            if self._spin_nums is not None:
+                template += 'particle number: %s\n' % self._spin_nums[idx]
             if not DEBUG_MODE:
                 template += '\n'
                 continue
@@ -81,7 +91,8 @@ class Block(Basis):
         RightBlock和LeftBlock是类似的，但是block和site的顺序是不一样的
         '''
         self._sub_block = blkext
-        self._sub_phival = phival
+        if DEBUG_MODE:
+            self._sub_phival = phival
 
 
 class LeftBlock(Block):
@@ -138,6 +149,8 @@ class LeftBlockExtend(ProdBasis):
         # 基本的属性
         self._lblk = lblk
         self._stbss = stbss
+        self._spin_nums = None#spin_nums被调用时初始化，见spin_nums
+        #self._site_nums = site_nums
         #
         stadic = {}
         stadic[lblk.prefix] = lblk.states
@@ -177,6 +190,28 @@ class LeftBlockExtend(ProdBasis):
     def block_len(self):
         '''block中含有的site数量'''
         return self._block_len
+
+    @property
+    def spin_nums(self):
+        '''对应idx，每个态的自旋数'''
+        site_nums = self._stbss.partinum
+        if self._spin_nums is not None:
+            return self._spin_nums
+        #如果没有self._spin_nums
+        #初始化self._spin_nums
+        if self._lblk.spin_nums is None:
+            raise ValueError('LeftBlockExtend: lblk的spin_num没有设置')
+        if not isinstance(self._lblk.spin_nums, numpy.ndarray):
+            raise ValueError('LeftBlockExtend: lblk的spin_num不是ndarray')
+        _spin_nums = numpy.zeros([self.dim, 2])
+        if not isinstance(site_nums, numpy.ndarray):
+            site_nums = numpy.array(site_nums)
+        for idx in self.iter_idx():
+            idx1, idx2 = self.idx_to_idxpair(idx)
+            _spin_nums[idx] = self._lblk.spin_nums[idx1] + site_nums[idx2]
+        self._spin_nums = _spin_nums
+        return _spin_nums
+
 
     def idx_to_idxpair(self, idx):
         '''将idx转换成idxpair'''

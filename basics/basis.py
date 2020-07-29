@@ -91,7 +91,7 @@ class SiteBasis(object):
     ``````
     TODO：让SiteBasis继承ProdBasis？
     """
-    def __init__(self, prefix: str, sites, states: List):
+    def __init__(self, prefix: str, sites, states: List, partinum=None):
         '''sites是格子的编号，可以是一个整数或者整数数组'''
         if isinstance(sites, int):
             self._sites = [sites]
@@ -103,6 +103,8 @@ class SiteBasis(object):
         #
         #每个格子是一样的，有一个就行了
         self._states2idx = None
+        #每个格子有多少粒子
+        self._partinum = partinum
 
 
     def __str__(self):
@@ -137,6 +139,11 @@ class SiteBasis(object):
     def states(self):
         '''每个格子的态，所有格子都一样'''
         return self._states
+
+    @property
+    def partinum(self):
+        '''每个状态对应有几个粒子'''
+        return self._partinum
 
     def idx_to_sitecode(self, idx):
         '''从编号到每个格子的态，编号的方式是从小到大，小的是低位'''
