@@ -104,8 +104,12 @@ class SiteBasis(object):
         #每个格子是一样的，有一个就行了
         self._states2idx = None
         #每个格子有多少粒子
-        self._partinum = partinum
-
+        if isinstance(partinum, numpy.ndarray):
+            self._partinum = partinum
+        elif partinum is not None:
+            self._partinum = numpy.array(partinum, dtype=numpy.int)
+        else:
+            self._partinum = None
 
     def __str__(self):
         template = \

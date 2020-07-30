@@ -32,7 +32,7 @@ class Block(Basis):
         self._spin_nums = None
         if partnum is not None:
             if not isinstance(partnum, numpy.ndarray):
-                self._spin_nums = numpy.array(partnum)
+                self._spin_nums = numpy.array(partnum, dtype=numpy.int)
             else:
                 self._spin_nums = partnum
 
@@ -203,7 +203,7 @@ class LeftBlockExtend(ProdBasis):
             raise ValueError('LeftBlockExtend: lblk的spin_num没有设置')
         if not isinstance(self._lblk.spin_nums, numpy.ndarray):
             raise ValueError('LeftBlockExtend: lblk的spin_num不是ndarray')
-        _spin_nums = numpy.zeros([self.dim, 2])
+        _spin_nums = numpy.zeros([self.dim, 2], dtype=numpy.int)
         if not isinstance(site_nums, numpy.ndarray):
             site_nums = numpy.array(site_nums)
         for idx in self.iter_idx():
@@ -230,8 +230,11 @@ class LeftBlockExtend(ProdBasis):
         randshow = numpy.random.randint(0, self._dim)
         for idx in self.iter_idx():
             if idx != 0 and idx != self._dim - 1 and idx != randshow:
+                #if not DEBUG_MODE:
                 continue
-            template += '%d %s' % (idx, self.idx_to_state(idx))
+            template += '%d %s\t' % (idx, self.idx_to_state(idx))
+            if self.spin_nums is not None:
+                template += 'particle number: %s' % (self.spin_nums[idx])
             if not DEBUG_MODE:
                 template += '\n'
                 continue
@@ -274,6 +277,7 @@ class RightBlockExtend(ProdBasis):
         # 基本的属性
         self._rblk = rblk
         self._stbss = stbss
+        self._spin_nums = None#spin_nums被调用时初始化，见spin_nums
         # 和LeftBlockExtend不同的是，这时新加的site是低位
         # 依旧是左边是低位
         stadic = {}
@@ -315,6 +319,27 @@ class RightBlockExtend(ProdBasis):
         '''block中含有的site数量'''
         return self._block_len
 
+    @property
+    def spin_nums(self):
+        '''对应idx，每个态的自旋数'''
+        site_nums = self._stbss.partinum
+        if self._spin_nums is not None:
+            return self._spin_nums
+        #如果没有self._spin_nums
+        #初始化self._spin_nums
+        if self._rblk.spin_nums is None:
+            raise ValueError('RightBlockExtend: rblk的spin_num没有设置')
+        if not isinstance(self._rblk.spin_nums, numpy.ndarray):
+            raise ValueError('RightBlockExtend: rblk的spin_num不是ndarray')
+        _spin_nums = numpy.zeros([self.dim, 2], dtype=numpy.int)
+        if not isinstance(site_nums, numpy.ndarray):
+            raise ValueError('RightBlockExtend: stbss的parinum不是ndarray')
+        for idx in self.iter_idx():
+            idx1, idx2 = self.idx_to_idxpair(idx)
+            _spin_nums[idx] = self._rblk.spin_nums[idx2] + site_nums[idx1]
+        self._spin_nums = _spin_nums
+        return _spin_nums
+
     def idx_to_idxpair(self, idx):
         '''将idx转换成idxpair'''
         idxf = numpy.float(idx)
@@ -332,8 +357,11 @@ class RightBlockExtend(ProdBasis):
         randshow = numpy.random.randint(0, self._dim)
         for idx in self.iter_idx():
             if idx != 0 and idx != self._dim - 1 and idx != randshow:
+                #if not DEBUG_MODE:
                 continue
-            template += '%d %s' % (idx, self.idx_to_state(idx))
+            template += '%d %s\t' % (idx, self.idx_to_state(idx))
+            if self.spin_nums is not None:
+                template += 'particle number: %s' % (self.spin_nums[idx])
             if not DEBUG_MODE:
                 template += '\n'
                 continue
