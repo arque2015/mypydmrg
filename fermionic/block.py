@@ -35,6 +35,7 @@ class Block(Basis):
                 self._spin_nums = numpy.array(partnum, dtype=numpy.int)
             else:
                 self._spin_nums = partnum
+        self._spin_sector = None
 
     @property
     def block_len(self):
@@ -95,6 +96,26 @@ class Block(Basis):
             self._sub_phival = phival
 
 
+    def get_spin_sector(self, nspin):
+        '''同一个自旋数的所有基的idx'''
+        #如果self._spin_sector还没有，先初始化
+        if self._spin_sector is None:
+            if self._spin_nums is None:
+                raise ValueError('%s不是粒子数的本征态' % self.__class__.__name__)
+            sbit = self._block_len + 1
+            self._spin_sector = {}
+            for bidx, snum in enumerate(self._spin_nums, 0):
+                sidx = snum[1] * sbit + snum[0]
+                if sidx in self._spin_sector:
+                    self._spin_sector[sidx].append(bidx)
+                else:
+                    self._spin_sector[sidx] = [bidx]
+        #
+        sbit = self._block_len + 1
+        sidx = nspin[1] * sbit + nspin[0]
+        return self._spin_sector[sidx]
+
+
 class LeftBlock(Block):
     """表示LeftBlock computational many particle physics (21.6)
     这个对应的是等式左边，有个下角标alpha
@@ -150,6 +171,7 @@ class LeftBlockExtend(ProdBasis):
         self._lblk = lblk
         self._stbss = stbss
         self._spin_nums = None#spin_nums被调用时初始化，见spin_nums
+        self._spin_sector = None#get_spin_sector被调用是初始化
         #self._site_nums = site_nums
         #
         stadic = {}
@@ -266,6 +288,25 @@ class LeftBlockExtend(ProdBasis):
         newlb.set_sub_block(self, phival)
         return newlb
 
+    def get_spin_sector(self, nspin):
+        '''获得同一个粒子数的所有基的idx'''
+        #初始化spin_sector
+        if self._spin_sector is None:
+            #注意不要直接使用self._spin_num
+            #有可能还没有初始化，使用self.spin_num
+            sbit = self._block_len + 1
+            self._spin_sector = {}
+            for bidx, snum in enumerate(self.spin_nums, 0):
+                sidx = snum[1] * sbit + snum[0]
+                if sidx in self._spin_sector:
+                    self._spin_sector[sidx].append(bidx)
+                else:
+                    self._spin_sector[sidx] = [bidx]
+        #
+        sbit = self._block_len + 1
+        sidx = nspin[1] * sbit + nspin[0]
+        return self._spin_sector[sidx]
+
 
 class RightBlockExtend(ProdBasis):
     """扩大了一个site以后的RightBlock"""
@@ -278,6 +319,7 @@ class RightBlockExtend(ProdBasis):
         self._rblk = rblk
         self._stbss = stbss
         self._spin_nums = None#spin_nums被调用时初始化，见spin_nums
+        self._spin_sector = None#get_spin_sector被调用是初始化
         # 和LeftBlockExtend不同的是，这时新加的site是低位
         # 依旧是左边是低位
         stadic = {}
@@ -391,3 +433,22 @@ class RightBlockExtend(ProdBasis):
         newrb = RightBlock(newstbs, stnum, initmat=newmat, partnum=pnum_list)
         newrb.set_sub_block(self, phival)
         return newrb
+
+    def get_spin_sector(self, nspin):
+        '''获得同一个粒子数的所有基的idx'''
+        #初始化spin_sector
+        if self._spin_sector is None:
+            #注意不要直接使用self._spin_num
+            #有可能还没有初始化，使用self.spin_num
+            sbit = self._block_len + 1
+            self._spin_sector = {}
+            for bidx, snum in enumerate(self.spin_nums, 0):
+                sidx = snum[1] * sbit + snum[0]
+                if sidx in self._spin_sector:
+                    self._spin_sector[sidx].append(bidx)
+                else:
+                    self._spin_sector[sidx] = [bidx]
+        #
+        sbit = self._block_len + 1
+        sidx = nspin[1] * sbit + nspin[0]
+        return self._spin_sector[sidx]

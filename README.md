@@ -1,19 +1,20 @@
 dmrg算法演示
 ======
 
+按照computational many particle physics书中第21章实现
+
 TODO:
 ------
 
-+ ~~matrix product还有block的表示~~
++ ~~实现matrix product，superblock。实现基还有其上的算符表示~~
 
-+ 实现21.11到21.15的算符表示，主要实现和Hubbard模型相关的算符
++ 实现NRG算法，用来做warmup
 
-+ 把书上的公式扩展到费米子，修改算符和算符update的公式
++ 实现DMRG算法，计算一个没有U的一维Hubbard链  
 
-+ 现在要实现21.6，21.7的公式，一个left/right-block里面要保存好等式右边的  
-内容，以实现21.15-21.19中，利用上一个block的算符计算这一个block的算符
+### 可以考虑的优化
 
-+ ~~branch diffbss 更高效的表示一个直积的态，不同的“格子”允许有不同的态~~
+避免过早优化，在上述三个功能完成前不实现优化
 
-+ 一个稀疏算符的表示
++ 算符是十分稀疏的，使用完成的矩阵保存浪费了很多内存，实现或调用一些稀疏矩阵的工具
 

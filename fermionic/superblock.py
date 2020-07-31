@@ -49,21 +49,33 @@ class SuperBlockExtend(ProdBasis):
         '''整体长度'''
         return self._block_len
 
+    @property
+    def leftblockextend(self):
+        '''左侧的扩展后的block'''
+        return self._lbke
+
+    @property
+    def rightblockextend(self):
+        '''右侧的扩展后的block'''
+        return self._rbke
+
     def __str__(self):
         template = 'SuperBlockExtend:\ndim: %d\n' % self._dim
         template += 'block_len: %d\n' % self._block_len
+        randidx = numpy.random.randint(0, self._dim)
         for idx in self.iter_idx():
+            if idx != 0 and idx != self._dim - 1 and idx != randidx:
+                continue
             idxtup = self.idx_to_idxtuple(idx)
             template += '|%s,%s,%s,%s>\n' %\
-                        (self._lblk.idx_to_state(idxtup.lftbkid),\
-                            self._lsite.idx_to_state(idxtup.lftstid),\
-                                self._rsite.idx_to_state(idxtup.rgtstid),\
-                                    self._rblk.idx_to_state(idxtup.rgtbkid))
+                        (self._lblk.idx_to_state(idxtup[0]),\
+                            self._lsite.idx_to_state(idxtup[1]),\
+                                self._rsite.idx_to_state(idxtup[2]),\
+                                    self._rblk.idx_to_state(idxtup[3]))
         return template
 
     def idx_to_idxtuple(self, idx):
         '''把一个编号转成四个数值的tuple'''
-        itup = namedtuple('idxtuple', ['lftbkid', 'lftstid', 'rgtstid', 'rgtbkid'])
         scd = self.idx_to_sitecode(idx)
-        idxtup = itup(scd[0], scd[1], scd[2], scd[3])
+        idxtup = (scd[0], scd[1], scd[2], scd[3])
         return idxtup

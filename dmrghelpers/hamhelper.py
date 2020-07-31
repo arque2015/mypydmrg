@@ -66,3 +66,11 @@ def update_rightblockextend_hamiltonian(
     mat = numpy.matmul(ham.mat, phival.transpose())
     mat = numpy.matmul(phival, mat)
     return Hamiltonian(rblk, mat)
+
+
+def plus_two_hamiltonian(ham1 :Hamiltonian, ham2: Hamiltonian):
+    '''把两个哈密顿量加在一起，生成一个新的哈密顿量'''
+    if ham1.basis.dim != ham2.basis.dim:
+        raise ValueError('不在同一个基上')
+    mat = ham1.mat + ham2.mat
+    return Hamiltonian(ham1.basis, mat)

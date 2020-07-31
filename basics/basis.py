@@ -267,12 +267,12 @@ class ProdBasis(object):
         template = 'Block: \n'
         template += '|%s>\t' % ','.join(self._prefixs)
         template += 'dim=%d\n' % self._dim
-        #randidx = numpy.random.randint(0, self._dim)
-        #template += '%s\n' % self.idx_to_state(0)
-        #template += '%s random\n' % self.idx_to_state(randidx)
-        #template += '%s\n' % self.idx_to_state(self._dim - 1)
-        for idx in range(self._dim):
-            template += '%s\n' % self.idx_to_state(idx)
+        randidx = numpy.random.randint(0, self._dim)
+        template += '%s\n' % self.idx_to_state(0)
+        template += '%s random\n' % self.idx_to_state(randidx)
+        template += '%s\n' % self.idx_to_state(self._dim - 1)
+        #for idx in range(self._dim):
+        #    template += '%s\n' % self.idx_to_state(idx)
         return template
 
     @property
