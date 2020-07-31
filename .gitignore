@@ -8,3 +8,5 @@ __pycache__
 /tests/*
 !/tests/create_operator2.py
 !/tests/superblock_helper.py
+!/tests/__init__.py
+!/tests/testhelper.py
