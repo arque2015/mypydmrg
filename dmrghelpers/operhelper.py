@@ -52,7 +52,7 @@ class OperFactory(object):
 
     @staticmethod
     def create_spindown():
-        '''自旋向上的产生算符'''
+        '''自旋向下的产生算符'''
         return OPERTUP(
             isferm=True,
             spin=-1,

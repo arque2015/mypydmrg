@@ -10,3 +10,7 @@ __pycache__
 !/tests/superblock_helper.py
 !/tests/__init__.py
 !/tests/testhelper.py
+!/tests/chain_test.py
+/dmrg/nrgchain.py
+
+

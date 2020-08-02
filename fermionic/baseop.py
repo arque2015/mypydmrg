@@ -108,3 +108,16 @@ class Hamiltonian(Operator):
         # + C^+_2 C_1
         mat = mat + mat.transpose()
         self.addnewterm(mat)
+
+
+    def get_block(self, idxs):
+        '''获得哈密顿量中的一个block
+        注意这里返回的不是一个Hamiltonian，
+        这个时候再创建一个新的Basis没有必要（？），
+        调用者自己管理对应的基
+        '''
+        mat = numpy.zeros([len(idxs), len(idxs)])
+        for newidx1, idx1 in enumerate(idxs, 0):
+            for newidx2, idx2 in enumerate(idxs, 0):
+                mat[newidx1, newidx2] = self._mat[idx1, idx2]
+        return mat

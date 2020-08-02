@@ -8,7 +8,7 @@ TODO:
 
 + ~~实现matrix product，superblock。实现基还有其上的算符表示~~
 
-+ 实现NRG算法，用来做warmup
++ ~~实现NRG算法~~，用来做warm up
 
 + 实现DMRG算法，计算一个没有U的一维Hubbard链  
 
@@ -18,6 +18,12 @@ TODO:
 
 + 算符是十分稀疏的，使用完整的矩阵保存浪费了很多内存，实现或调用一些稀疏矩阵的工具
 
++ DMRGConfig中的-ext_storage使用频率不高，在可以存到硬盘里，节约内存的使用
+
 ### 备忘
 
 + [left/right-block的递推](markdowns/left_right_block.md#block的递推)
+
++ [调用结构](markdowns/program_struct.md#调用结构)
+
++ [DMRGConfig](markdowns/program_struct.md#DMRGConfig)

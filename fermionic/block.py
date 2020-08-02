@@ -305,6 +305,10 @@ class LeftBlockExtend(ProdBasis):
         #
         sbit = self._block_len + 1
         sidx = nspin[1] * sbit + nspin[0]
+        #注意，现在这个基中可能没有某些粒子数的sector
+        #这时不返回空列表，返回的是None
+        if not sidx in self._spin_sector:
+            return None
         return self._spin_sector[sidx]
 
 
