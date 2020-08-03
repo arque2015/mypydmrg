@@ -22,7 +22,7 @@ def test1():
     cup1 = create_operator_of_site(left1.fock_basis, OperFactory.create_spinup())
     cdn1 = create_operator_of_site(left1.fock_basis, OperFactory.create_spindown())
     #把现在的结果暂存到dconf
-    dconf.left_tmp_reset(1, hamleft)
+    dconf.left_tmp_reset(1, left1, hamleft)
     dconf.left_tmp_add_oper(cup1)
     dconf.left_tmp_add_oper(cdn1)
     print(dconf)
@@ -113,8 +113,11 @@ def test1():
     print(ham4.basis.dim)
     eigvs = numpy.linalg.eigvalsh(ham4.mat)
     print(numpy.sort(eigvs))
-    #四个格子的时候的精确解是-4.47213595（OBC）可以调节max_keep来验证
-    #四个格子的时候的精确解是-4.0可以去掉之前的注释验证
+    #半满四个格子的时候的精确解是-4.47213595（OBC）可以调节max_keep来验证
+    #半满四个格子的时候的精确解是-4.0(PBC)可以去掉之前的注释验证
+    #注意这里的解是没有限制sector的，可以看ham4.basis第一个分量是不是半满
+    print(ham4.basis.spin_nums[0])
+
 
 def main():
     '''开始测试'''

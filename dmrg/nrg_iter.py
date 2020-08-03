@@ -36,10 +36,15 @@ def leftblock_to_next(
     '''
     leftstorage = conf.get_leftblock_storage(phi_idx)
     hamleft = leftstorage.hamiltonian
+    ### 开始处理leftext在leftext上面工作的内容
     #把left扩展一个格子
     leftext = extend_leftblock(left)
+    #给leftext进行初始化，leftext[phi_idx]中存的就是leftblock[phi_idx]的extend
+    conf.leftext_reset(phi_idx, leftext)
     #把哈密顿量扩展一个格子
     hamleft = extend_leftblock_hamiltonian(hamleft, leftext)
+    #把扩展基上的哈密顿量存下来
+    conf.storage_leftext_ham(phi_idx, hamleft)
     #存储需要进行扩展的算符
     maintain_opers = {}
     #创建新的格子上厄的两个算符并且扩展
@@ -47,14 +52,14 @@ def leftblock_to_next(
     newup = leftsite_extend_oper(leftext, newup)
     newdown = create_operator_of_site(leftext.stbss, OperFactory.create_spindown())
     newdown = leftsite_extend_oper(leftext, newdown)
-    if leftext.stbss.sites[0] in tmpoper_storage:
-        maintain_opers[leftext.stbss.sites[0]] = (newup, newdown)
+    #if leftext.stbss.sites[0] in tmpoper_storage:
+    maintain_opers[leftext.stbss.sites[0]] = (newup, newdown)
     #把left_tmp中所有的算符扩展
-    #注意这个时候leftstorage.oper_storage会被修改，
+    #注意这个时候leftstorage.oper_storage_list会被修改，
     #不能在这个上面进行循环
-    while len(leftstorage.oper_storage) > 0:
-    #for stidx in leftstorage.oper_storage:
-        stidx = leftstorage.oper_storage[0]
+    while len(leftstorage.oper_storage_list) > 0:
+    #for stidx in leftstorage.oper_storage_list:
+        stidx = leftstorage.oper_storage_list[0]
         #把left上面的两个算符弹出
         stup, stdown = leftstorage.pop_oper(stidx)
         #将两个算符扩展
@@ -73,16 +78,16 @@ def leftblock_to_next(
         #自旋下部分
         tar_down =  maintain_opers[bstidx][1]
         hamleft.add_hopping_term(newdown, tar_down)
+    ### 开始从leftext升级到下一个left
     #调用get_phival_from_hamleft，得到能量本正值
     phival = get_phival_from_hamleft(hamleft, leftext, conf.nrg_max_keep)
     #给leftext升级成新的基，这个时候phival其实没什么用
     #但fermionic在DEBUG_MODE下会解出basis在fock_basis下的系数，这个是需要的
     newleft = update_to_leftblock(leftext, phival)
-    #给phi_idx extend中的哈密顿量保存下来以后，给哈密顿量进行更新
-    conf.storage_leftext_ham(phi_idx, hamleft)
+    #给哈密顿量进行更新
     hamleft = update_leftblockextend_hamiltonian(newleft, hamleft, phival)
     #给conf中的left_tmp重置，现在left_tmp应该保存phi_idx+1的哈密顿量和算符了
-    conf.left_tmp_reset(phi_idx+1, hamleft)
+    conf.left_tmp_reset(phi_idx+1, newleft, hamleft)
     #给下一次运算需要保存的算符更新
     for stidx in tmpoper_storage:
         up_ext, down_ext = maintain_opers[stidx]

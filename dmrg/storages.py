@@ -23,15 +23,33 @@ class DMRGConfig(object):
         #多数运算都在superblock上面，保存extend以后的基更加方便
         #这里面存|phi^idx, s^idx+1>这个extend上面的算符
         #（右边是|s^idx-1, phi^(N-idx+1)>）
-        self._leftext_storage = [BlockStorage(idx) for idx in range(model.size)]
-        self._rightext_storage = [BlockStorage(idx) for idx in range(model.size)]
+        self._leftext_storage = {}
+        self._rightext_storage = {}
 
+    @property
+    def model(self):
+        '''配置中的模型'''
+        return self._model
 
     def get_leftblock_storage(self, phi_idx):
         '''暂时保存的leftblock'''
         if phi_idx != self._left_tmp.phi_idx:
             raise ValueError('存储的idx和提取的idx不一致')
         return self._left_tmp
+
+    def get_rightblock_storage(self, phi_idx):
+        '''获得暂时保存的rightblock'''
+        if phi_idx != self._right_tmp.phi_idx:
+            raise ValueError('存储的idx和提取的idx不一致')
+        return self._right_tmp
+
+    def leftext_reset(self, phi_idx, block):
+        '''重新设置leftext中的值'''
+        self._leftext_storage[phi_idx] = BlockStorage(phi_idx, block)
+
+    def rightext_reset(self, phi_idx, block):
+        '''重新设置rightext中的值'''
+        self._rightext_storage[phi_idx] = BlockStorage(phi_idx, block)
 
     def storage_leftext_ham(self, phi_idx, ham):
         '''存储一个ham进去\n
@@ -48,6 +66,11 @@ class DMRGConfig(object):
         '''
         self._leftext_storage[phi_idx].storage_oper(oper)
 
+    def storage_rightext_ham(self, phi_idx, ham):
+        '''存储一个哈密顿量进去\n
+        '''
+        self._rightext_storage[phi_idx].storage_ham(ham)
+
     def storage_rightext_oper(self, phi_idx, oper):
         '''
         存储一个oper进去\n
@@ -55,13 +78,11 @@ class DMRGConfig(object):
         '''
         self._rightext_storage[phi_idx].storage_oper(oper)
 
-    def left_tmp_reset(self, phi_idx, ham):
+    def left_tmp_reset(self, phi_idx, leftblock, ham):
         '''清空left_tmp，需要制定idx还有哈密顿量\n
-        这个在最开始的使用调用就可以了
+        注意ham的basis不一定是
         '''
-        if self._left_tmp is not None:
-            del self._left_tmp
-        self._left_tmp = BlockStorage(phi_idx)
+        self._left_tmp = BlockStorage(phi_idx, leftblock)
         self._left_tmp.storage_ham(ham)
 
     def left_tmp_add_oper(self, oper):
@@ -69,10 +90,31 @@ class DMRGConfig(object):
         这个算符用来进行下一次的extend，是临时的'''
         self._left_tmp.storage_oper(oper)
 
+    def right_tmp_reset(self, phi_idx, rightblock, ham):
+        '''清空right_tmp，需要phi_idx和哈密顿量\n
+        注意这个phi_idx和block_len之间的关系，phi_idx = N - block_len + 1\n
+        在RightBlockExtend中显示的都是block_len
+        '''
+        self._right_tmp = BlockStorage(phi_idx, rightblock)
+        self._right_tmp.storage_ham(ham)
+
+    def right_tmp_add_oper(self, oper):
+        '''增加一个rightblock上的算符'''
+        self._right_tmp.storage_oper(oper)
+
     def __str__(self):
         template = 'DMRGConfig: \nModel: %s\n' % self._model.__class__.__name__
         if self._left_tmp is not None:
-            template += str(self._left_tmp)
+            template += 'left_tmp: ' + str(self._left_tmp)
+        if self._right_tmp is not None:
+            template += 'right_tmp: ' + str(self._right_tmp)
+        for idx in range(self._model.size):
+            if idx in self._leftext_storage:
+                template += 'leftext %d: \n' % idx
+                template += str(self._leftext_storage[idx])
+            if idx in self._rightext_storage:
+                template += 'leftext %d: \n' % idx
+                template += str(self._rightext_storage[idx])
         return template
 
 
@@ -80,16 +122,17 @@ class BlockStorage(object):
     """每一个Block时，哈密顿量还有一些算符是以后也会用的\n
     需要保存下来
     """
-    def __init__(self, idx):
+    def __init__(self, idx, block):
+        self._block = block
         self._phi_idx = idx
         self._ham = None
         self._oper_storage = []
         self._opers = {}
 
-    #@property
-    #def oper_dict(self):
-    #    '''包含的算符'''
-    #    return self._opers
+    @property
+    def block(self):
+        '''所在的基的信息'''
+        return self._block
 
     @property
     def phi_idx(self):
@@ -109,7 +152,7 @@ class BlockStorage(object):
         return self._ham
 
     @property
-    def oper_storage(self):
+    def oper_storage_list(self):
         '''保存下来的算符的siteidx'''
         return self._oper_storage
 
@@ -145,9 +188,11 @@ class BlockStorage(object):
     def __str__(self):
         template = 'Storage: phi^%d\n' % self._phi_idx
         if self._ham is not None:
-            template += 'ham: \n%s\n' % str(self._ham)
+            template += 'ham: \n%s\n' % str(self._ham)#.basis.__class__.__name__)
         else:
             template += 'ham: 未设置'
+        template += 'opers: \n'
         for key in self._opers:
-            template += '%s\n' % str(self._opers[key])
+            template += key
+            template += ' %s\n' % str(self._opers[key].basis.__class__.__name__)
         return template

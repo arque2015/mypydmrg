@@ -18,6 +18,12 @@ class BaseModel(object):
         '''模型的大小'''
         return len(self._sites)
 
+    @property
+    def sites(self):
+        '''模型的格子编号'''
+        return self._sites
+
+
     def get_site_bonds(self, stidx):
         '''获得一个site的所有bond'''
         return self._bonds[stidx]
