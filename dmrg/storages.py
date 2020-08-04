@@ -31,6 +31,14 @@ class DMRGConfig(object):
         '''配置中的模型'''
         return self._model
 
+    def get_leftext_storage(self, phi_idx):
+        '''返回保存下来的leftext'''
+        return self._leftext_storage[phi_idx]
+
+    def get_rightext_storage(self, phi_idx):
+        '''返回保存下来的rightext'''
+        return self._rightext_storage[phi_idx]
+
     def get_leftblock_storage(self, phi_idx):
         '''暂时保存的leftblock'''
         if phi_idx != self._left_tmp.phi_idx:

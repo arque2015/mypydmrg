@@ -25,8 +25,8 @@ TODO:
 
 ### 备忘
 
-+ [left/right-block的递推](markdowns/left_right_block.md#block的递推)
++ [left/right-block的递推](https://github.com/maryprimary/mypydmrg/wiki/left_right_block#block的递推)
 
-+ [调用结构](markdowns/program_struct.md#调用结构)
++ [调用结构](https://github.com/maryprimary/mypydmrg/wiki/program_struct#调用结构)
 
-+ [DMRGConfig](markdowns/program_struct.md#DMRGConfig)
++ [DMRGConfig](https://github.com/maryprimary/mypydmrg/wiki/program_struct#DMRGConfig)
