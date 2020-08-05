@@ -51,7 +51,7 @@ def rightblockextend_to_next(
     #M（a,b）,lidxs就是将a变成（alpha，s^j）的列表，
     #ridxs是b到（s^j+1,beta）的，这在以后计算phival的时候有作用
     #因为phival的列是在（s^j+1,beta）的
-    lidxs, ridxs, mat = get_density_root(
+    lidxs, ridxs, mat = get_density_root(#pylint: disable=unused-variable
         leftstorage,
         rightstorage,
         sector_idxs,

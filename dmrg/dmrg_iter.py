@@ -168,17 +168,17 @@ def get_density_in_sector(
                 mat[lidx, ridx] = denmat[dlidx, dridx]
         spin_sector_mat_dict[secidx] = (ssecidxs, mat)
         #查看其他block是不是0
-        for secidx2 in spin_sector_dict:
-            if secidx2 == secidx:
-                continue
-            ssecidxs2 = spin_sector_dict[secidx2]
-            mat = numpy.zeros([len(ssecidxs), len(ssecidxs2)])
-            for lidx, lextidx in enumerate(ssecidxs, 0):
-                for ridx, rextidx in enumerate(ssecidxs2, 0):
-                    dlidx = extidxs.index(lextidx)
-                    dridx = extidxs.index(rextidx)
-                    mat[lidx, ridx] = denmat[dlidx, dridx]
-            print('mat sum: ', numpy.allclose(mat, 0))
+        #for secidx2 in spin_sector_dict:
+        #    if secidx2 == secidx:
+        #        continue
+        #    ssecidxs2 = spin_sector_dict[secidx2]
+        #    mat = numpy.zeros([len(ssecidxs), len(ssecidxs2)])
+        #    for lidx, lextidx in enumerate(ssecidxs, 0):
+        #        for ridx, rextidx in enumerate(ssecidxs2, 0):
+        #            dlidx = extidxs.index(lextidx)
+        #            dridx = extidxs.index(rextidx)
+        #            mat[lidx, ridx] = denmat[dlidx, dridx]
+        #    print('mat sum: ', numpy.allclose(mat, 0))
     return spin_sector_mat_dict
 
 
@@ -213,21 +213,25 @@ def get_phival_from_density_sector(
     #选择前_maxkeep个分量
     phival = numpy.zeros([_maxkeep, extblk.dim])
     #给本正值排序
-    eigvals_sorted = numpy.sort(list(eigpair.keys()))
+    #和NRG给能量本正值排序不同，这里降序排序
+    eigvals_sorted = numpy.sort(list(eigpair.keys()))[::-1]
     #验证密度矩阵本正值的求和
-    densum = 0
-    for eva in eigvals_sorted:
-        densum += len(eigpair[eva]) * eva
-    print('density sum: ', densum)
+    #densum = 0
+    #for eva in eigvals_sorted:
+    #    densum += len(eigpair[eva]) * eva
+    #print('density sum: ', densum)
     #把前_max_keep个赋值给phi_val
     phirow = 0
+    densum = 0
     for eva in eigvals_sorted:
         for eve in eigpair[eva]:
             phival[phirow, :] = eve
             phirow += 1
+            densum += eva
             if phirow >= _maxkeep:
                 break
         if phirow >= _maxkeep:
             break
+    print('density remain: ', densum)
     #
     return phival
