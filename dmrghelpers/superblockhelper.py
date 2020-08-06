@@ -61,7 +61,30 @@ def rightext_hamiltonian_to_superblock(
         sbext: SuperBlockExtend,
         ham: Hamiltonian
     ):
+    '''把rightblockextend基上面的哈密顿量扩展到superblock上\n
+    Issue#2: 优化算法以提升速度
+    '''
+    #原本的哈密顿量在|s^n+1, phi^N-(n+1)>上
+    #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
+    # H' = I X H，由于哈密顿量里面都是算符的二次项，而且right中的
+    #编号都比左边要大，所以不会产生反对易的符号
+    mat = numpy.zeros([sbext.dim, sbext.dim])
+    eyedim = sbext.leftblockextend.dim
+    #循环rightext
+    for ridx in sbext.rightblockextend.iter_idx():
+        for lidx in sbext.rightblockextend.iter_idx():
+            #每一个right上面的值，现在都变成一个单位矩阵
+            mat[lidx*eyedim:(lidx+1)*eyedim, ridx*eyedim:(ridx+1)*eyedim] =\
+                numpy.eye(eyedim) * ham.mat[lidx, ridx]
+    return Hamiltonian(sbext, mat)
+
+
+def rightext_hamiltonian_to_superblock_(
+        sbext: SuperBlockExtend,
+        ham: Hamiltonian
+    ):
     '''把rightblockextend基上面的哈密顿量扩展到superblock上'''
+    print('rightext_hamiltonian_to_superblock_会被移除')
     #原本的哈密顿量在|s^n+1, phi^N-(n+1)>上
     #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
     # H' = I X H，由于哈密顿量里面都是算符的二次项，而且right中的
@@ -87,7 +110,39 @@ def rightext_oper_to_superblock(
         sbext: SuperBlockExtend,
         oper: BaseOperator
     ):
+    '''把rightblockextend基上面的算符扩展到superblock上\n
+    Issue#2: 优化算法以提升速度
+    '''
+    #原本的算符在|s^n+1, phi^N-(n+1)>上
+    #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
+    # O' = I X O，这时的算符会经过phi^n-1和s^n中所有的产生算符
+    #才能到|s^n+1, phi^N-(n+1)>上
+    mat = numpy.zeros([sbext.dim, sbext.dim])
+    eyedim = sbext.leftblockextend.dim
+    #首先需要统计左边一共的粒子数目，计算费米符号
+    eye = None
+    if oper.isferm:
+        eye = numpy.zeros([eyedim, eyedim])
+        for idx in sbext.leftblockextend.iter_idx():
+            _pnum = sbext.leftblockextend.spin_nums[idx]
+            _partinum = numpy.sum(_pnum)
+            eye[idx, idx] = 1. if _partinum % 2 == 0 else -1.
+    else:
+        eye = numpy.eye(eyedim)
+    #循环rightext
+    for ridx in sbext.rightblockextend.iter_idx():
+        for lidx in sbext.rightblockextend.iter_idx():
+            #ridx上面的leftblockextend产生的符号在eye中计算清楚了
+            mat[lidx*eyedim:(lidx+1)*eyedim, ridx*eyedim:(ridx+1)*eyedim] =\
+                eye * oper.mat[lidx, ridx]
+    return BaseOperator(oper.siteidx, sbext, oper.isferm, mat, spin=oper.spin)
+
+def rightext_oper_to_superblock_(
+        sbext: SuperBlockExtend,
+        oper: BaseOperator
+    ):
     '''把rightblockextend基上面的算符扩展到superblock上'''
+    print('rightext_oper_to_superblock_会被移除')
     #原本的算符在|s^n+1, phi^N-(n+1)>上
     #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
     # O' = I X O，这时的算符会经过phi^n-1和s^n中所有的产生算符
