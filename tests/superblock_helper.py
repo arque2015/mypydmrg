@@ -2,6 +2,7 @@
 测试superblock中的有关功能
 """
 
+import time
 import numpy
 from dmrghelpers.blockhelper import first_leftblock, first_rightblock
 from dmrghelpers.blockhelper import extend_leftblock, extend_rightblock
@@ -20,8 +21,17 @@ from dmrghelpers.hamhelper import plus_two_hamiltonian
 from dmrghelpers.superblockhelper import extend_merge_to_superblock
 from dmrghelpers.superblockhelper import leftext_hamiltonian_to_superblock
 from dmrghelpers.superblockhelper import leftext_oper_to_superblock
-from dmrghelpers.superblockhelper import rightext_hamiltonian_to_superblock
-from dmrghelpers.superblockhelper import rightext_oper_to_superblock
+from dmrghelpers.superblockhelper import rightext_hamiltonian_to_superblock, rightext_hamiltonian_to_superblock_
+from dmrghelpers.superblockhelper import rightext_oper_to_superblock, rightext_oper_to_superblock_
+
+
+def test_clock(func, *args):
+    '''比较运行时间'''
+    start = time.time()
+    ret = func(*args)
+    stop = time.time()
+    print(func.__name__, stop - start)
+    return ret
 
 def test1():
     '''测试superblock
@@ -127,8 +137,10 @@ def test1():
     #        print(rsta, lsta, cup_in_3.mat[lidx, ridx])
     #
     #把右边的哈密顿量扩展到superblock上面
-    hamright = rightext_hamiltonian_to_superblock(superblock, hamright)
+    _hamright_ = test_clock(rightext_hamiltonian_to_superblock_, superblock, hamright)
+    hamright = test_clock(rightext_hamiltonian_to_superblock, superblock, hamright)
     print(hamright)
+    print('对比rightext_hamiltonian_to_superblock', numpy.allclose(hamright.mat, _hamright_.mat))
     #for ridx in superblock.iter_idx():
     #    for lidx in superblock.iter_idx():
     #        if hamright.mat[lidx, ridx] == 0:
@@ -148,7 +160,9 @@ def test1():
     #        print(rsta, lsta, hamright.mat[lidx, ridx])
     #
     #把右边的算符扩展到superblock上面
-    cup_in_4 = rightext_oper_to_superblock(superblock, cup_in_4)
+    _cup_in_4_ = test_clock(rightext_oper_to_superblock_, superblock, cup_in_4)
+    cup_in_4 = test_clock(rightext_oper_to_superblock, superblock, cup_in_4)
+    print('对比rightext_oper_to_superblock', numpy.allclose(_cup_in_4_.mat, cup_in_4.mat))
     print(cup_in_4)
     #for ridx in superblock.iter_idx():
     #    for lidx in superblock.iter_idx():
@@ -256,10 +270,14 @@ def test2():
     print(hamleft)
     print(cdn_in_3)
     #把右边的哈密顿量扩展到superblock上面
-    hamright = rightext_hamiltonian_to_superblock(superblock, hamright)
+    _hamright_ = test_clock(rightext_hamiltonian_to_superblock_, superblock, hamright)
+    hamright = test_clock(rightext_hamiltonian_to_superblock, superblock, hamright)
     print(hamright)
+    print('对比rightext_hamiltonian_to_superblock', numpy.allclose(hamright.mat, _hamright_.mat))
     #把右边的算符扩展到superblock上面
-    cdn_in_4 = rightext_oper_to_superblock(superblock, cdn_in_4)
+    _cdn_in_4_ = test_clock(rightext_oper_to_superblock, superblock, cdn_in_4)
+    cdn_in_4 = test_clock(rightext_oper_to_superblock, superblock, cdn_in_4)
+    print('对比rightext_oper_to_superblock', numpy.allclose(_cdn_in_4_.mat, cdn_in_4.mat))
     print(cdn_in_4)
     #
     hamsuper = plus_two_hamiltonian(hamleft, hamright)
