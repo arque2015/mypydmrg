@@ -12,6 +12,7 @@ __pycache__
 !/tests/testhelper.py
 !/tests/chain_test.py
 !/tests/chain_test2.py
+!/tests/chain_test3.py
 /dmrg/nrgchain.py
 
 

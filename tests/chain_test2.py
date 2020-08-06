@@ -74,7 +74,7 @@ def main():
     print(extrabonds)
     #print(dconf._leftext_storage[3])
     #print(dconf._rightext_storage[6])
-    mat = get_superblock_ham(
+    _, mat = get_superblock_ham(
         dconf._leftext_storage[3],
         dconf._rightext_storage[6],
         (3, 3), extrabonds

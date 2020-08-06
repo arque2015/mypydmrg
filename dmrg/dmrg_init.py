@@ -3,7 +3,7 @@
 
 from typing import List
 from lattice import BaseModel
-from fermionic.block import RightBlock, RightBlockExtend
+from fermionic.block import RightBlock
 from dmrghelpers.blockhelper import first_leftblock, first_rightblock
 from dmrghelpers.blockhelper import extend_rightblock
 from dmrghelpers.hamhelper import create_hamiltonian_of_site

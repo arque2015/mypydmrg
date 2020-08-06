@@ -24,7 +24,7 @@
 
 这个类中保存一些计算过程中需要保留一段时间的变量，因为在一个sweep中，需要用到上  
 一个sweep的哈密顿量和算符，主要存储的是-BlockExtend基下的哈密顿量和算符，因为  
-[block的递推](left_right_block.md#block的递推)这个过程中，superblock是从-BlockExtend建立的，算符  
+[block的递推](https://github.com/maryprimary/mypydmrg/wiki/left_right_block#block的递推)这个过程中，superblock是从-BlockExtend建立的，算符  
 的递推也是从-BlockExtend基上进行的。在更新-Block的时候，需要保存一个-Block，  
 他要用来计算他自己的-BlockExtend，以及这个-BlockExtend上的哈密顿量和算符，还  
 要从这个-BlockExtend上计算下一个-Block，这个Block是需要保存并且迭代的。
