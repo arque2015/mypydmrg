@@ -2,7 +2,7 @@
 验证一维链上面的DMRG
 """
 
-import numpy
+#import numpy
 from lattice.one_dim_chain import HubbardChain
 from dmrg.storages import DMRGConfig
 from dmrg.dmrg_init import init_first_site, prepare_rightblockextend
@@ -206,7 +206,7 @@ def main():
     print(gerg)
     #可以验证六个格子PBC半满基态能量-8.0，调节dconf中的maxkeep
     #最大64（大于没效果），因为super是从leftext^3上面建立的
-    
+
 
 if __name__ == "__main__":
     main()
