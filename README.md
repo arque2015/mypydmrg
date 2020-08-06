@@ -18,16 +18,11 @@ TODO:
 
 ### 可以考虑的优化
 
-可以考虑做的优化
-
-+ rightext_hamiltonian_to_superblock和rightext_oper_to_superblock还是非常慢，考虑多线程  
-以及算法的优化
-
-优先级低一些
-
 + 算符是十分稀疏的，使用完整的矩阵保存浪费了很多内存，实现或调用一些稀疏矩阵的工具
 
 + DMRGConfig中的-ext_storage使用频率不高，在可以存到硬盘里，节约内存的使用
+
++ 给各个部分加上计时
 
 ### 备忘
 
