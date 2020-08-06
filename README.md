@@ -18,10 +18,11 @@ TODO:
 
 ### 可以考虑的优化
 
-可以考虑做的优化
-
+正在做  
 + rightext_hamiltonian_to_superblock和rightext_oper_to_superblock还是非常慢，考虑多线程  
 以及算法的优化
+
+可以考虑做的优化  
 
 优先级低一些
 
