@@ -11,8 +11,10 @@ def main():
     '''开始算法'''
     #首先设置格子
     #PBC时，6个格子基态能量-8.0，8个格子-9.65685425
+    #在U=1时能量时-6.60115829，U=2时能量-5.40945685
+    #在U=3时能量时-4.43335361，U=4时能量-3.66870618
     modelsize = 6
-    hubbard = HubbardChain(modelsize)
+    hubbard = HubbardChain(modelsize, 4.0)
     spin_sector = (modelsize // 2, modelsize // 2)
     #然后进行dmrg算法参数的配置
     dconf = init_first_site(hubbard, 15)

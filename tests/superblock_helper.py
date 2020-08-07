@@ -40,7 +40,8 @@ def test1():
     #
     left1 = first_leftblock(1)
     #现在只有第一个格子，创建第一个格子的哈密顿量和产生算符
-    hamleft = create_hamiltonian_of_site(left1.fock_basis, 0, 0)
+    hamleft = create_hamiltonian_of_site(left1.fock_basis, -1., 0)
+    print('U', hamleft)
     cup_in_1 = create_operator_of_site(left1.fock_basis, OperFactory.create_spinup())
     #将第一个格子扩展到第二个
     left1ext = extend_leftblock(left1)
@@ -49,10 +50,15 @@ def test1():
     #扩展以后有C^+_2
     cup_in_2 = create_operator_of_site(left1ext.stbss, OperFactory.create_spinup())
     cup_in_2 = leftsite_extend_oper(left1ext, cup_in_2)
+    #扩展以后的U2
+    ciu_in_2 = create_operator_of_site(left1ext.stbss, OperFactory.create_u())
+    ciu_in_2 = leftsite_extend_oper(left1ext, ciu_in_2)
     #现在C^+_1和C^+_2都在|phi^1, s^2>这个left1ext基上，整合进哈密顿量
     #先把哈密顿量也放到|phi^1, s^2>这个基上
     hamleft = extend_leftblock_hamiltonian(hamleft, left1ext)
     hamleft.add_hopping_term(cup_in_1, cup_in_2)
+    hamleft.add_u_term(ciu_in_2, -1.0)
+    print('U', hamleft)
     #然后升级left1ext到left2 |phi^2>
     phival = numpy.eye(16)
     left2 = update_to_leftblock(left1ext, phival)
@@ -76,7 +82,8 @@ def test1():
     #
     right = first_rightblock(5)
     #现在只有第5个格子
-    hamright = create_hamiltonian_of_site(right.fock_basis, 0, 0)
+    hamright = create_hamiltonian_of_site(right.fock_basis, -1.0, 0)
+    print('rU', hamright)
     cup_in_5 = create_operator_of_site(right.fock_basis, OperFactory.create_spinup())
     #将第5个格子扩展到第4个 |s^4, phi^1>
     rightext = extend_rightblock(right)
@@ -85,11 +92,15 @@ def test1():
     #创建第四个格子的算符并且扩展
     cup_in_4 = create_operator_of_site(rightext.stbss, OperFactory.create_spinup())
     cup_in_4 = rightsite_extend_oper(rightext, cup_in_4)
+    #第四个格子上的U
+    ciu_in_4 = create_operator_of_site(rightext.stbss, OperFactory.create_u())
+    ciu_in_4 = rightsite_extend_oper(rightext, ciu_in_4)
     #把哈密顿量扩展到|s^4, phi^1>
     hamright = extend_rightblock_hamiltonian(hamright, rightext)
     #添加4-5的hopping
     hamright.add_hopping_term(cup_in_4, cup_in_5)
-    print(hamright)
+    hamright.add_u_term(ciu_in_4, -1.0)
+    print('rU', hamright)
     print(cup_in_4)
     #
     #创建superblock

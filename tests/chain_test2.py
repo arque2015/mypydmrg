@@ -38,8 +38,8 @@ def push_left(dconf: DMRGConfig, target_site):
 
 def main():
     '''开始测试'''
-    hc6 = HubbardChain(6)
-    dconf = init_first_site(hc6, 30)
+    hc6 = HubbardChain(6, 2.0)
+    dconf = init_first_site(hc6, 100)
     print(dconf)
     for stidx in [2, 3, 4]:
         push_left(dconf, stidx)
@@ -82,6 +82,8 @@ def main():
     eigvals = numpy.linalg.eigvalsh(mat)
     print(eigvals)
     #可以验证六个格子PBC半满基态能量-8.0，调节dconf中的maxkeep
+    #在U=1时能量时-6.60115829，U=2时能量-5.40945685
+    #在U=3时能量时-4.43335361，U=4时能量-3.66870618
     #最大64（大于没效果），因为super是从leftext^3上面建立的
 
 

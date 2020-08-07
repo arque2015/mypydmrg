@@ -22,7 +22,7 @@ def init_first_site(
     #
     left = first_leftblock(model.sites[0])
     #创建第一个格子上的哈密顿量，还有第一个格子的产生算符
-    hamleft = create_hamiltonian_of_site(left.fock_basis, 0, 0)
+    hamleft = create_hamiltonian_of_site(left.fock_basis, model.coef_u, 0)
     cup1 = create_operator_of_site(left.fock_basis, OperFactory.create_spinup())
     cdn1 = create_operator_of_site(left.fock_basis, OperFactory.create_spindown())
     #把现在的结果暂存到dconf
@@ -32,7 +32,7 @@ def init_first_site(
     #
     right = first_rightblock(model.sites[-1])
     #创建最后一个格子上的哈密顿量，还有最后一个格子的产生算符
-    hamright = create_hamiltonian_of_site(right.fock_basis, 0, 0)
+    hamright = create_hamiltonian_of_site(right.fock_basis, model.coef_u, 0)
     cuplast = create_operator_of_site(right.fock_basis, OperFactory.create_spinup())
     cdnlast = create_operator_of_site(right.fock_basis, OperFactory.create_spindown())
     #把右侧的结果也暂存到dconf
@@ -95,4 +95,8 @@ def prepare_rightblockextend(
         #自旋向下部分
         tar_down = maintain_opers[bstidx][1]
         rightham.add_hopping_term(tar_down, newdown)
+    #把新的U添加进去
+    newu = create_operator_of_site(rightext.stbss, OperFactory.create_u())
+    newu = rightsite_extend_oper(rightext, newu)
+    rightham.add_u_term(newu, conf.model.coef_u)
     return rightext

@@ -40,7 +40,7 @@ def push_left(dconf: DMRGConfig, target_site):
 
 def main():
     '''开始测试'''
-    hc6 = HubbardChain(6)
+    hc6 = HubbardChain(6, 1.0)
     dconf = init_first_site(hc6, 15)
     print(dconf)
     for stidx in [2, 3, 4]:

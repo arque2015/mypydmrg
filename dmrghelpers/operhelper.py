@@ -29,6 +29,15 @@ SINGLE_SITE_CREATE_SPINDOWN = numpy.array(
     ]
 )
 
+SINGLE_SITE_INTERACT_U = numpy.array(
+    [
+        [0., 0., 0., 0.],
+        [0., 0., 0., 0.],
+        [0., 0., 0., 0.],
+        [0., 0., 0., 1.]
+    ]
+)
+
 #SINGLE_SITE_NUMBER_SPINUP = numpy.array(
 #    [
 #        [0., 0., 0., 0.],
@@ -57,6 +66,15 @@ class OperFactory(object):
             isferm=True,
             spin=-1,
             mat=SINGLE_SITE_CREATE_SPINDOWN
+        )
+
+    @staticmethod
+    def create_u():
+        '''产生U算符'''
+        return OPERTUP(
+            isferm=False,
+            spin=0,
+            mat=SINGLE_SITE_INTERACT_U
         )
 
     #@staticmethod

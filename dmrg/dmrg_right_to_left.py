@@ -120,6 +120,10 @@ def rightblockextend_to_next(
     for bnd in newbonds:
         newhamext.add_hopping_term(maintain_dict[bnd][0], newsiteup)
         newhamext.add_hopping_term(maintain_dict[bnd][1], newsitedn)
+    #把新的格子的U项添加进去
+    newiu = create_operator_of_site(newrightext.stbss, OperFactory.create_u())
+    newiu = rightsite_extend_oper(newrightext, newiu)
+    newhamext.add_u_term(newiu, conf.model.coef_u)
     #保存需要保存的新的ext上面的算符
     for extidx in extoper_storage:
         conf.storage_rightext_oper(phi_idx, maintain_dict[extidx][0])
