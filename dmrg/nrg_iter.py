@@ -78,6 +78,10 @@ def leftblock_to_next(
         #自旋下部分
         tar_down =  maintain_opers[bstidx][1]
         hamleft.add_hopping_term(newdown, tar_down)
+    #构建U项并扩展，然后添加到哈密顿量
+    newiu = create_operator_of_site(leftext.stbss, OperFactory.create_u())
+    newiu = leftsite_extend_oper(leftext, newiu)
+    hamleft.add_u_term(newiu, conf.model.coef_u)
     ### 开始从leftext升级到下一个left
     #调用get_phival_from_hamleft，得到能量本正值
     phival = get_phival_from_hamleft(hamleft, leftext, conf.nrg_max_keep)

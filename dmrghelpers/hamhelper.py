@@ -6,11 +6,13 @@ import numpy
 from fermionic.block import LeftBlockExtend, LeftBlock
 from fermionic.block import RightBlockExtend, RightBlock
 from fermionic.baseop import Hamiltonian
+from .operhelper import SINGLE_SITE_INTERACT_U
 
 
 def create_hamiltonian_of_site(basis, coef_u, coef_mu):
     '''单个格子的时候肯定是没有t的'''
     mat = numpy.zeros([basis.dim, basis.dim])
+    mat += coef_u * SINGLE_SITE_INTERACT_U
     #先不实现u和mu
     return Hamiltonian(basis, mat)
 

@@ -23,6 +23,10 @@ class BaseModel(object):
         '''模型的格子编号'''
         return self._sites
 
+    @property
+    def coef_u(self):
+        '''U'''
+        return self._coef_u
 
     def get_site_bonds(self, stidx):
         '''获得一个site的所有bond'''

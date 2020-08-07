@@ -110,6 +110,13 @@ class Hamiltonian(Operator):
         self.addnewterm(mat)
 
 
+    def add_u_term(self, opu: BaseOperator, coef_u):
+        '''添加一个U项'''
+        if opu.basis.dim != self.basis.dim:
+            raise ValueError('opu的dim对不上')
+        self.addnewterm(coef_u * opu.mat)
+
+
     def get_block(self, idxs):
         '''获得哈密顿量中的一个block
         注意这里返回的不是一个Hamiltonian，
