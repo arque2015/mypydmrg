@@ -107,6 +107,8 @@ class Hamiltonian(Operator):
         mat = numpy.matmul(op1.mat, op2.mat.transpose())
         # + C^+_2 C_1
         mat = mat + mat.transpose()
+        # t系数
+        mat = -1.0 * mat
         self.addnewterm(mat)
 
 

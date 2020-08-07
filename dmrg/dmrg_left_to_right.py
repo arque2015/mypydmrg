@@ -109,6 +109,10 @@ def leftblockextend_to_next(
     for bnd in newbonds:
         newhamext.add_hopping_term(maintain_dict[bnd][0], newsiteup)
         newhamext.add_hopping_term(maintain_dict[bnd][1], newsitedn)
+    #把新的格子的U项添加进去
+    newiu = create_operator_of_site(newleftext.stbss, OperFactory.create_u())
+    newiu = leftsite_extend_oper(newleftext, newiu)
+    newhamext.add_u_term(newiu, conf.model.coef_u)
     #保存需要保存的算符
     for extidx in extoper_storage:
         conf.storage_leftext_oper(phi_idx, maintain_dict[extidx][0])

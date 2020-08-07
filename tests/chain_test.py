@@ -12,7 +12,7 @@ from dmrghelpers.operhelper import OperFactory, create_operator_of_site
 
 def test1():
     '''测试一维链上面的NRG，DMRG'''
-    hc6 = HubbardChain(6, -1.0)
+    hc6 = HubbardChain(6, 1.0)
     #print(hc6)
     dconf = DMRGConfig(hc6, 1000)
     #

@@ -18,6 +18,8 @@ TODO:
 
 ### 可以考虑的优化
 
++ leftsite_extend_oper和rightblock_extend_oper速度比较慢
+
 + 算符是十分稀疏的，使用完整的矩阵保存浪费了很多内存，实现或调用一些稀疏矩阵的工具
 
 + DMRGConfig中的-ext_storage使用频率不高，在可以存到硬盘里，节约内存的使用

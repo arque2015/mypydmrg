@@ -97,5 +97,6 @@ def prepare_rightblockextend(
         rightham.add_hopping_term(tar_down, newdown)
     #把新的U添加进去
     newu = create_operator_of_site(rightext.stbss, OperFactory.create_u())
-    rightham.add_u_term(newu, )
+    newu = rightsite_extend_oper(rightext, newu)
+    rightham.add_u_term(newu, conf.model.coef_u)
     return rightext
