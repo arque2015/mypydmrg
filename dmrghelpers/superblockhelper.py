@@ -79,33 +79,6 @@ def rightext_hamiltonian_to_superblock(
     return Hamiltonian(sbext, mat)
 
 
-def rightext_hamiltonian_to_superblock_(
-        sbext: SuperBlockExtend,
-        ham: Hamiltonian
-    ):
-    '''把rightblockextend基上面的哈密顿量扩展到superblock上'''
-    print('rightext_hamiltonian_to_superblock_会被移除')
-    #原本的哈密顿量在|s^n+1, phi^N-(n+1)>上
-    #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
-    # H' = I X H，由于哈密顿量里面都是算符的二次项，而且right中的
-    #编号都比左边要大，所以不会产生反对易的符号
-    mat = numpy.zeros([sbext.dim, sbext.dim])
-    #循环idx并且把idx转成idxtuple的速度比较慢，循环idxtuple速度要快一点
-    for ridxcode in sbext.iter_sitecode():
-        for lidxcode in sbext.iter_sitecode():
-            ridx = sbext.sitecode_to_idx(ridxcode)
-            lidx = sbext.sitecode_to_idx(lidxcode)
-            rlbkid, rlstid, rrstid, rrbkid = ridxcode
-            llbkid, llstid, lrstid, lrbkid = lidxcode
-            #只有leftext相同时才有数值（I）
-            if rlbkid != llbkid or rlstid != llstid:
-                continue
-            rbk_lidx = sbext.rightblockextend.idxpair_to_idx(lrstid, lrbkid)
-            rbk_ridx = sbext.rightblockextend.idxpair_to_idx(rrstid, rrbkid)
-            mat[lidx, ridx] = ham.mat[rbk_lidx, rbk_ridx]
-    return Hamiltonian(sbext, mat)
-
-
 def rightext_oper_to_superblock(
         sbext: SuperBlockExtend,
         oper: BaseOperator
@@ -135,40 +108,4 @@ def rightext_oper_to_superblock(
             #ridx上面的leftblockextend产生的符号在eye中计算清楚了
             mat[lidx*eyedim:(lidx+1)*eyedim, ridx*eyedim:(ridx+1)*eyedim] =\
                 eye * oper.mat[lidx, ridx]
-    return BaseOperator(oper.siteidx, sbext, oper.isferm, mat, spin=oper.spin)
-
-def rightext_oper_to_superblock_(
-        sbext: SuperBlockExtend,
-        oper: BaseOperator
-    ):
-    '''把rightblockextend基上面的算符扩展到superblock上'''
-    print('rightext_oper_to_superblock_会被移除')
-    #原本的算符在|s^n+1, phi^N-(n+1)>上
-    #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
-    # O' = I X O，这时的算符会经过phi^n-1和s^n中所有的产生算符
-    #才能到|s^n+1, phi^N-(n+1)>上
-    mat = numpy.zeros([sbext.dim, sbext.dim])
-    #循环idx并且把idx转成idxtuple的速度比较慢，循环idxtuple速度要快一点
-    for ridxcode in sbext.iter_sitecode():
-        for lidxcode in sbext.iter_sitecode():
-            ridx = sbext.sitecode_to_idx(ridxcode)
-            lidx = sbext.sitecode_to_idx(lidxcode)
-            rlbkid, rlstid, rrstid, rrbkid = ridxcode
-            llbkid, llstid, lrstid, lrbkid = lidxcode
-            #只有leftext相同时才有数值（I）
-            if rlbkid != llbkid or rlstid != llstid:
-                continue
-            #O中的指标
-            rbk_lidx = sbext.rightblockextend.idxpair_to_idx(lrstid, lrbkid)
-            rbk_ridx = sbext.rightblockextend.idxpair_to_idx(rrstid, rrbkid)
-            if oper.isferm:
-                #左边一共的粒子数目
-                leftextid = sbext.leftblockextend.idxpair_to_idx(rlbkid, rlstid)
-                _pnum = sbext.leftblockextend.spin_nums[leftextid]
-                _partinum = numpy.sum(_pnum)
-                #交换的符号
-                _sign = 1. if _partinum % 2 == 0 else -1.
-                mat[lidx, ridx] = _sign * oper.mat[rbk_lidx, rbk_ridx]
-            else:
-                mat[lidx, ridx] = oper.mat[rbk_lidx, rbk_ridx]
     return BaseOperator(oper.siteidx, sbext, oper.isferm, mat, spin=oper.spin)

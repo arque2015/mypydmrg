@@ -124,6 +124,41 @@ def leftsite_extend_oper(
     ):
     '''将LeftBlockExtend.stbss上面的算符扩展到LeftBlockExtend上
     这里利用的是21.15左右的公式，加上了反对易
+    Issue#3： 优化速度
+    '''
+    opdim = oper.basis.dim
+    if leftext.stbss.dim != opdim:
+        raise ValueError('oper.basis.dim和LeftBlockExtend.stbss.dim对应不上')
+    #需要处理反对易的符号
+    #|A_1,A_2,..A_n> = C_1C_2..C_n|0>
+    #C_n|A_1,A_2..> = C_nC_1C_2..|0> = (-1)^a C_1C_2..C_n|0>
+    #其中a的数量是phi^n-1中的粒子数，因为phi^n-1是和粒子数的共同本征态
+    mat = numpy.zeros([leftext.dim, leftext.dim])
+    eyedim = leftext.lblk.dim
+    #
+    eye = None
+    if oper.isferm:
+        #如果是反对易的，统计block中的算符数目
+        eye = numpy.zeros([eyedim, eyedim])
+        for idx in leftext.lblk.iter_idx():
+            _pnum = leftext.lblk.spin_nums[idx]
+            _partinum = numpy.sum(_pnum)
+            eye[idx, idx] = 1.0 if _partinum % 2 == 0 else -1.0
+    else:
+        eye = numpy.eye(eyedim)
+    #循环leftsite
+    for ridx in leftext.stbss.iter_idx():
+        for lidx in leftext.stbss.iter_idx():
+            mat[lidx*eyedim:(lidx+1)*eyedim, ridx*eyedim:(ridx+1)*eyedim] =\
+                eye * oper.mat[lidx, ridx]
+    return BaseOperator(oper.siteidx, leftext, oper.isferm, mat, spin=oper.spin)
+
+def leftsite_extend_oper_(
+        leftext: LeftBlockExtend,
+        oper: BaseOperator
+    ):
+    '''将LeftBlockExtend.stbss上面的算符扩展到LeftBlockExtend上
+    这里利用的是21.15左右的公式，加上了反对易
     '''
     opdim = oper.basis.dim
     if leftext.stbss.dim != opdim:
@@ -164,6 +199,43 @@ def update_leftblockextend_oper(
 
 
 def rightblock_extend_oper(
+        rightext: RightBlockExtend,
+        oper: BaseOperator
+    ):
+    '''把rightblock.rblk下的算符扩展到
+    rightblockextend上面
+    Issue#3：优化速度
+    '''
+    opdim = oper.basis.dim
+    if rightext.rblk.dim != opdim:
+        raise ValueError('oper.basis.dim和RightBlockExtend.rblk.dim对应不上')
+    #需要处理反对易的符号
+    #|A_1,A_2,..A_n> = C_1C_2..C_n|0>
+    #在Cm|phi^n_beta> = |phi^n_beta'>的情况下
+    #Cm|s^n-1,phi^n_beta> = -C^n-1Cm|0, phi^n_beta>
+    #所以在扩展rightblock中的算符的时候，要看n-1上面有几个粒子
+    mat = numpy.zeros([rightext.dim, rightext.dim])
+    eyedim = rightext.stbss.dim
+    #
+    eye = None
+    if oper.isferm:
+        #如果是反对易的，统计block中的算符数目
+        eye = numpy.zeros([eyedim, eyedim])
+        for idx in rightext.stbss.iter_idx():
+            _pnum = rightext.stbss.partinum[idx]
+            _partinum = numpy.sum(_pnum)
+            eye[idx, idx] = 1.0 if _partinum % 2 == 0 else -1.0
+    else:
+        eye = numpy.eye(eyedim)
+    #循环rightblock
+    for ridx in rightext.rblk.iter_idx():
+        for lidx in rightext.rblk.iter_idx():
+            mat[lidx*eyedim:(lidx+1)*eyedim, ridx*eyedim:(ridx+1)*eyedim] =\
+                eye * oper.mat[lidx, ridx]
+    return BaseOperator(oper.siteidx, rightext, oper.isferm, mat, spin=oper.spin)
+
+
+def rightblock_extend_oper_(
         rightext: RightBlockExtend,
         oper: BaseOperator
     ):
