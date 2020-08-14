@@ -107,7 +107,16 @@ class Hamiltonian(Operator):
         mat = numpy.matmul(op1.mat, op2.mat.transpose())
         # + C^+_2 C_1
         mat = mat + mat.transpose()
+        # t系数
+        mat = -1.0 * mat
         self.addnewterm(mat)
+
+
+    def add_u_term(self, opu: BaseOperator, coef_u):
+        '''添加一个U项'''
+        if opu.basis.dim != self.basis.dim:
+            raise ValueError('opu的dim对不上')
+        self.addnewterm(coef_u * opu.mat)
 
 
     def get_block(self, idxs):

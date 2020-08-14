@@ -4,15 +4,11 @@ dmrg算法演示
 按照computational many particle physics书中第21章实现
 
 TODO:
-------
-
-+ ~~实现DMRG算法~~，计算一个没有U的一维Hubbard链  
+------ 
 
 + <font color=red>实现local Hamiltonian版本的DMRG</font>
 
-+ 在做DMRG的时候，优先以密度矩阵的求和为依据而不是maxkeep，只依据数量误差基本不能控制  
-
-+ 实现包含U的模型  
++ 在做DMRG的时候，优先以密度矩阵的求和为依据而不是maxkeep，只依据数量误差基本不能控制   
 
 + warm up改称无限格子时的DMRG算法
 

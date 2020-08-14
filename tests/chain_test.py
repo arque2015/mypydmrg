@@ -12,13 +12,13 @@ from dmrghelpers.operhelper import OperFactory, create_operator_of_site
 
 def test1():
     '''测试一维链上面的NRG，DMRG'''
-    hc6 = HubbardChain(6)
+    hc6 = HubbardChain(6, 1.0)
     #print(hc6)
     dconf = DMRGConfig(hc6, 1000)
     #
     left1 = first_leftblock(1)
     #创建第一个格子上的哈密顿量，还有第一个格子的产生算符
-    hamleft = create_hamiltonian_of_site(left1.fock_basis, 0, 0)
+    hamleft = create_hamiltonian_of_site(left1.fock_basis, hc6.coef_u, 0)
     cup1 = create_operator_of_site(left1.fock_basis, OperFactory.create_spinup())
     cdn1 = create_operator_of_site(left1.fock_basis, OperFactory.create_spindown())
     #把现在的结果暂存到dconf
