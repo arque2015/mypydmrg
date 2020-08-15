@@ -3,10 +3,18 @@ dmrg算法演示
 
 按照computational many particle physics书中第21章实现
 
+MPS和MPO按照The density-matrix renormalization group in the age of
+matrix product states 实现
+
 TODO:
 ------ 
 
-+ <font color=red>实现local Hamiltonian版本的DMRG</font>
++ 实现MPS的表示，并且实现用MPS表示一个Block基
+
++ 实现用MPO的表示，表示升降算符，验证MPO作用到MPS上的效果
+
+传统DMRG
+------
 
 + 在做DMRG的时候，优先以密度矩阵的求和为依据而不是maxkeep，只依据数量误差基本不能控制   
 
