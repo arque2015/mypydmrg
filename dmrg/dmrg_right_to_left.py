@@ -39,12 +39,13 @@ def rightblockextend_to_next(
     #scrtor_idxs中保存的是满足粒子数要求的所有superblock上的基的idx
     #mat是这个sector上的矩阵
     sector_idxs, mat = get_superblock_ham(
-        leftstorage, rightstorage, spin_sector, extrabonds
+        conf, leftstorage, rightstorage, spin_sector, extrabonds
     )
     #将基态解出来
     eigvals, eigvecs = numpy.linalg.eigh(mat)
     ground = eigvecs[:, 0]
     ground_erg = eigvals[0]
+    #print('g', ground_erg)
     #从基态构造密度矩阵
     #这里需要sector_idx来判断有哪些位置上是有数值的
     #这个方法主要是将基态的C(alpha,s^j,s^j+1,beta)这个写成
@@ -118,8 +119,9 @@ def rightblockextend_to_next(
     maintain_dict[phi_idx-1] = (newsiteup, newsitedn)
     #加入新的hopping项
     for bnd in newbonds:
-        newhamext.add_hopping_term(maintain_dict[bnd][0], newsiteup)
-        newhamext.add_hopping_term(maintain_dict[bnd][1], newsitedn)
+        coef_t = conf.model.get_t_coef(bnd, newsiteup.siteidx)
+        newhamext.add_hopping_term(maintain_dict[bnd][0], newsiteup, coef_t)
+        newhamext.add_hopping_term(maintain_dict[bnd][1], newsitedn, coef_t)
     #把新的格子的U项添加进去
     newiu = create_operator_of_site(newrightext.stbss, OperFactory.create_u())
     newiu = rightsite_extend_oper(newrightext, newiu)

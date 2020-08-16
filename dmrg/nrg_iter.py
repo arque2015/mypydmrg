@@ -72,12 +72,13 @@ def leftblock_to_next(
         conf.storage_leftext_oper(phi_idx, maintain_opers[stidx][1])
     #找到构成bond的算符，把新的hopping添加到哈密顿量
     for bstidx in newbonds:
+        coef_t = conf.model.get_t_coef(bstidx, newup.siteidx)
         #自旋上部分
         tar_up = maintain_opers[bstidx][0]
-        hamleft.add_hopping_term(newup, tar_up)
+        hamleft.add_hopping_term(newup, tar_up, coef_t)
         #自旋下部分
-        tar_down =  maintain_opers[bstidx][1]
-        hamleft.add_hopping_term(newdown, tar_down)
+        tar_down = maintain_opers[bstidx][1]
+        hamleft.add_hopping_term(newdown, tar_down, coef_t)
     #构建U项并扩展，然后添加到哈密顿量
     newiu = create_operator_of_site(leftext.stbss, OperFactory.create_u())
     newiu = leftsite_extend_oper(leftext, newiu)
@@ -157,7 +158,7 @@ def get_phival_from_hamleft(
     #phival中每一行应该是一个本正值
     #给本正值排序，从小到大
     eigvals_sorted = numpy.sort(list(eigpairs.keys()))
-    #print(eigvals_sorted)
+    #print(eigvals_sorted[0])
     phirow = 0
     for eva in eigvals_sorted:
         for eve in eigpairs[eva]:

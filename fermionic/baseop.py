@@ -95,9 +95,15 @@ class Hamiltonian(Operator):
         template += str(self._mat)
         return template
 
-    def add_hopping_term(self, op1: BaseOperator, op2: BaseOperator):
+    def add_hopping_term(
+            self,
+            op1: BaseOperator, op2: BaseOperator,
+            coeft
+        ):
         '''增加一个hopping项
-        op1和op2应当是两个格子的产生算符
+        op1和op2应当是两个格子的产生算符，coeft是这个bond的强度
+        ``````
+        Issue#11: 增加bond大小的设置
         '''
         if op1.basis.dim != self.basis.dim:
             raise ValueError('op1的dim对不上')
@@ -108,7 +114,7 @@ class Hamiltonian(Operator):
         # + C^+_2 C_1
         mat = mat + mat.transpose()
         # t系数
-        mat = -1.0 * mat
+        mat = -coeft * mat
         self.addnewterm(mat)
 
 

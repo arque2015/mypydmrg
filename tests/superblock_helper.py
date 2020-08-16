@@ -62,7 +62,7 @@ def test1():
     #现在C^+_1和C^+_2都在|phi^1, s^2>这个left1ext基上，整合进哈密顿量
     #先把哈密顿量也放到|phi^1, s^2>这个基上
     hamleft = extend_leftblock_hamiltonian(hamleft, left1ext)
-    hamleft.add_hopping_term(cup_in_1, cup_in_2)
+    hamleft.add_hopping_term(cup_in_1, cup_in_2, 1.0)
     hamleft.add_u_term(ciu_in_2, -1.0)
     print('U', hamleft)
     #然后升级left1ext到left2 |phi^2>
@@ -82,7 +82,7 @@ def test1():
     cup_in_3 = test_clock(leftsite_extend_oper, left2ext, cup_in_3)
     print('对比leftsite_extend_oper', numpy.allclose(_cup_in_3_.mat, cup_in_3.mat))
     #把2-3之间的hopping放到哈密顿量里
-    hamleft.add_hopping_term(cup_in_2, cup_in_3)
+    hamleft.add_hopping_term(cup_in_2, cup_in_3, 1.0)
     #把|phi^2, s^3>这个东西以后要用来生成supoerblock
     print(hamleft)
     print(cup_in_3)
@@ -108,7 +108,7 @@ def test1():
     #把哈密顿量扩展到|s^4, phi^1>
     hamright = extend_rightblock_hamiltonian(hamright, rightext)
     #添加4-5的hopping
-    hamright.add_hopping_term(cup_in_4, cup_in_5)
+    hamright.add_hopping_term(cup_in_4, cup_in_5, 1.0)
     hamright.add_u_term(ciu_in_4, -1.0)
     print('rU', hamright)
     print(cup_in_4)
@@ -199,7 +199,7 @@ def test1():
     #                        superblock.rightblockextend.rblk.idx_to_state(idx4))
     #        print(rsta, lsta, cup_in_4.mat[lidx, ridx])
     hamsuper = plus_two_hamiltonian(hamleft, hamright)
-    hamsuper.add_hopping_term(cup_in_3, cup_in_4)
+    hamsuper.add_hopping_term(cup_in_3, cup_in_4, 1.0)
     print(hamsuper)
     #for ridx in superblock.iter_idx():
     #    for lidx in superblock.iter_idx():
@@ -240,7 +240,7 @@ def test2():
     #现在C^+_1和C^+_2都在|phi^1, s^2>这个left1ext基上，整合进哈密顿量
     #先把哈密顿量也放到|phi^1, s^2>这个基上
     hamleft = extend_leftblock_hamiltonian(hamleft, left1ext)
-    hamleft.add_hopping_term(cdn_in_1, cdn_in_2)
+    hamleft.add_hopping_term(cdn_in_1, cdn_in_2, 1.0)
     #然后升级left1ext到left2 |phi^2>
     phival = numpy.eye(16)
     left2 = update_to_leftblock(left1ext, phival)
@@ -258,7 +258,7 @@ def test2():
     cdn_in_3 = test_clock(leftsite_extend_oper, left2ext, cdn_in_3)
     print('对比leftsite_extend_oper', numpy.allclose(_cdn_in_3_.mat, cdn_in_3.mat))
     #把2-3之间的hopping放到哈密顿量里
-    hamleft.add_hopping_term(cdn_in_2, cdn_in_3)
+    hamleft.add_hopping_term(cdn_in_2, cdn_in_3, 1.0)
     #把|phi^2, s^3>这个东西以后要用来生成supoerblock
     print(hamleft)
     print(cdn_in_3)
@@ -280,7 +280,7 @@ def test2():
     #把哈密顿量扩展到|s^4, phi^1>
     hamright = extend_rightblock_hamiltonian(hamright, rightext)
     #添加4-5的hopping
-    hamright.add_hopping_term(cdn_in_4, cdn_in_5)
+    hamright.add_hopping_term(cdn_in_4, cdn_in_5, 1.0)
     print(hamright)
     print(cdn_in_4)
     #
@@ -300,7 +300,7 @@ def test2():
     print(cdn_in_4)
     #
     hamsuper = plus_two_hamiltonian(hamleft, hamright)
-    hamsuper.add_hopping_term(cdn_in_3, cdn_in_4)
+    hamsuper.add_hopping_term(cdn_in_3, cdn_in_4, 1.0)
     print(hamsuper)
     #for ridx in superblock.iter_idx():
     #    for lidx in superblock.iter_idx():
