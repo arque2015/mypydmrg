@@ -32,7 +32,7 @@ def leftblockextend_to_next(
     rightstorage = conf.get_rightext_storage(phi_idx+2)
     #首先要把superblock拼出来
     sector_idxs, mat = get_superblock_ham(
-        leftstorage, rightstorage, spin_sector, extrabonds
+        conf, leftstorage, rightstorage, spin_sector, extrabonds
     )
     #把基态解出来
     eigvals, eigvecs = numpy.linalg.eigh(mat)
@@ -107,8 +107,9 @@ def leftblockextend_to_next(
     maintain_dict[phi_idx+1] = (newsiteup, newsitedn)
     #把新的hopping项加进去
     for bnd in newbonds:
-        newhamext.add_hopping_term(maintain_dict[bnd][0], newsiteup)
-        newhamext.add_hopping_term(maintain_dict[bnd][1], newsitedn)
+        coef_t = conf.model.get_t_coef(bnd, newsiteup.siteidx)
+        newhamext.add_hopping_term(maintain_dict[bnd][0], newsiteup, coef_t)
+        newhamext.add_hopping_term(maintain_dict[bnd][1], newsitedn, coef_t)
     #把新的格子的U项添加进去
     newiu = create_operator_of_site(newleftext.stbss, OperFactory.create_u())
     newiu = leftsite_extend_oper(newleftext, newiu)

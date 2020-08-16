@@ -89,12 +89,13 @@ def prepare_rightblockextend(
     #把新的bond添加进去
     #rightext中保存的是rightham的实例，在这时修改也是可以的
     for bstidx in newbonds:
+        coef_t = conf.model.get_t_coef(bstidx, newup.siteidx)
         #自旋向上部分
         tar_up = maintain_opers[bstidx][0]
-        rightham.add_hopping_term(tar_up, newup)
+        rightham.add_hopping_term(tar_up, newup, coef_t)
         #自旋向下部分
         tar_down = maintain_opers[bstidx][1]
-        rightham.add_hopping_term(tar_down, newdown)
+        rightham.add_hopping_term(tar_down, newdown, coef_t)
     #把新的U添加进去
     newu = create_operator_of_site(rightext.stbss, OperFactory.create_u())
     newu = rightsite_extend_oper(rightext, newu)

@@ -1,6 +1,6 @@
-"""计算一维的Hubbard链"""
+"""计算一维的ladder"""
 
-from lattice.one_dim_chain import HubbardChain
+from lattice.one_dim_ladder import HubbardLadder
 from dmrg.dmrg_init import init_first_site, prepare_rightblockextend
 from dmrg.nrg_iter import leftblock_to_next
 from dmrg.dmrg_right_to_left import rightblockextend_to_next
@@ -8,22 +8,35 @@ from dmrg.dmrg_left_to_right import leftblockextend_to_next
 
 
 def main():
-    '''开始算法'''
-    #首先设置格子
-    #PBC时，6个格子基态能量-8.0，8个格子-9.65685425
-    #在U=1时能量时-6.60115829，U=2时能量-5.40945685
-    #在U=3时能量时-4.43335361，U=4时能量-3.66870618
-    modelsize = 6
-    hubbard = HubbardChain(modelsize, 3.0)
+    '''开始计算'''
+    #晶格的配置
+    lenx = 2
+    modelsize = 3 * lenx
     spin_sector = (modelsize // 2, modelsize // 2)
-    #然后进行dmrg算法参数的配置
+    hubbard = HubbardLadder(lenx, 0.0, 0.05)
+    #ED算基态能量的结果
+    #U=0时结果是-12.63841536，U=1时是-11.13668625
+    #U=2时结果是-9.78120910，U=4时是-7.52100677
+    #print(hubbard)
+    #for idx in range(1, modelsize+1):
+    #    for bnd in hubbard.get_site_bonds(idx):
+    #        print(idx, bnd, hubbard.get_t_coef(idx, bnd))
+    #print(hubbard.get_t_coef(1, 5))
+    #这个init_first_site创建DMRGConfig，同时把第一个格子和最后一个
+    #格子的哈密顿量和算符存储到DMRGConfig中
     dconf = init_first_site(hubbard, 15)
     #TODO: DMRG过程中的裁减率以后应该实现，按照数量裁减误差不容易控制
     #DMRG时的maxkeep
-    dkeep = [15 + modelsize*idx for idx in range(modelsize-4)]
-    #开始warm up，nrg_iter的时候是从一个leftblock到另一个leftblock
-    #所以要做到最右边减2，这个时候有个多余的计算，就是计算了最后一个的升级
+    #left sweep的时候phi_idx从2...到modelsize - 3
+    #这个phi_idx是ext的编号，所以共有modelsize-4次从ext升级到下一个ext
+    #的过程，这个过程中，会从ext升级到block，保存多少个基，由dkeep指定
+    dkeep = [20 + modelsize*idx for idx in range(modelsize-4)]
+    #
+    #开始warm up, nrg_iter是从一个leftblock到下一个leftblock
+    #这个过程中，把leftblockext生成成功并且保存到DMRGConfig
+    #因为需要modelsize-3位置上的ext，所以要一直更新到modelsize-2的block
     for phi_idx in range(2, modelsize-1):
+        #这个phi_idx是目标block的编号
         #先拿到推进前的上一个leftblock
         leftstorage = dconf.get_leftblock_storage(phi_idx-1)
         leftblock = leftstorage.block
@@ -46,24 +59,27 @@ def main():
             site_need_tmp,
             site_need_tmp
         )
-    #warm up完成
-    #把第一个rightblockextend做出来，用来做第一个superblock
+    #在warm up结束了以后，model size-3的leftext就有了，但是这个时候
+    #还没有modesize上的rightext，先把这个位置的ext算出来
     extsite = modelsize - 1#新加的site
+    #这个newbonds是N-1这个site和N这个site的bond
     newbonds = [bond for bond in\
         hubbard.get_site_bonds(extsite) if bond > extsite]
-    #以后需要用的算符
+    #以后需要用的算符，这个里面主要是和leftext之间会有链接的
     site_need_tmp = []
     for stidx in range(extsite, modelsize+1):
         for bnd in hubbard.get_site_bonds(stidx):
             if bnd < extsite:
                 site_need_tmp.append(stidx)
                 break
-    #准备第一个rightblockextend
+    #准备第一个rightblockextend，这个过程把N上面的rightext保存下来
     right = dconf.get_rightblock_storage(modelsize).block
     _ = prepare_rightblockextend(right, modelsize, dconf, newbonds, site_need_tmp)
-    #开始DMRG计算
+    #现在可以开始sweep了
     for _ in range(2):#计算两个sweep
         #开始right sweep
+        #这个right sweep的时候，现在只有N上面的ext,从N-1的位置开始
+        #推进ext，一直到4上的ext（4上的ext包含到第3个格子，range不包含最后一个）
         for iter_idx, phi_idx in enumerate(range(modelsize-1, 3, -1), 0):
             #找到leftblockextend和rightblockextend之间存在的bond
             #现在组成的superblock是phi^phi_idx-2,s^phi_idx-1,s^phi_idx,phi^phi_idx+1
@@ -87,13 +103,15 @@ def main():
                     if bnd < phi_idx-1:
                         site_need_tmp.append(stidx)
                         break
-            #
+            #从phi_idx+1推进到phi_idx
             gerg = rightblockextend_to_next(
                 dconf, phi_idx, extrabonds, newbonds,
                 site_need_tmp, spin_sector, dkeep[iter_idx]
             )
             print(gerg)
+        #
         #开始left sweep
+        #这次从2到N-3
         for iter_idx, phi_idx in enumerate(range(2, modelsize-2), 0):
             #找到leftblockextend和rightblockextend之间存在的bond
             #现在组成的superblock是phi^phi_idx-1,s^phi_idx,s^phi_idx+1,phi^phi_idx+2

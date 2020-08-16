@@ -11,6 +11,7 @@ class BaseModel(object):
         self._bonds = {}
         self._coef_u = 0.
         self._coef_mu = 0.
+        self._coef_t = 1.
         #self._site_energy = None
 
     @property
@@ -29,8 +30,20 @@ class BaseModel(object):
         return self._coef_u
 
     def get_site_bonds(self, stidx):
-        '''获得一个site的所有bond'''
+        '''获得一个site的所有bond\n
+        继承了BaseModel的类可以重写这个方法来实现想要的厄效果
+        '''
         return self._bonds[stidx]
+
+
+    def get_t_coef(self, st1, st2):
+        '''获得两个site之间的hopping的强度\n
+        继承了BaseModel的类可以重写这个方法来实现t1,t2
+        '''
+        if st2 not in self.get_site_bonds(st1):
+            raise ValueError('没有这个bond')
+        return self._coef_t
+
 
     def __str__(self):
         template = '%s: \n' % self.__class__.__name__
