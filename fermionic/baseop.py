@@ -4,6 +4,7 @@
 
 import numpy
 from basics.operator import Operator
+from basics.utils import add_transpose_to
 from fermionic.superblock import SuperBlockExtend
 
 class BaseOperator(Operator):
@@ -123,7 +124,7 @@ class Hamiltonian(Operator):
         return mat
 
 
-    @profile
+    #@profile
     def superblock_add_hopping_term(
             self,
             op1: BaseOperator, op2: BaseOperator,
@@ -176,9 +177,10 @@ class Hamiltonian(Operator):
         #matot = mato[::-1]
         #numpy.copy(mato).transpose()#mato.T#transpose()
         #mato = mato + matot#numpy.add(mato, matot)#
-        for idx in range(_dim):
-            mato[idx, idx:] = mato[idx, idx:] + mato[idx:, idx]
-            mato[idx:, idx] = mato[idx, idx:]
+        #for idx in range(_dim):
+        #    mato[idx, idx:] = mato[idx, idx:] + mato[idx:, idx]
+        #    mato[idx:, idx] = mato[idx, idx:]
+        mato = add_transpose_to(mato)
         # t系数
         mato = -coeft * mato
         self.addnewterm(mato)
