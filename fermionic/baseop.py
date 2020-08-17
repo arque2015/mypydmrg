@@ -95,20 +95,29 @@ class Hamiltonian(Operator):
         template += str(self._mat)
         return template
 
-    def add_hopping_term(self, op1: BaseOperator, op2: BaseOperator):
+    #@profile#使用line_profiler进行性能分析的时候把这个注释去掉
+    def add_hopping_term(
+            self,
+            op1: BaseOperator, op2: BaseOperator,
+            coeft
+        ):
         '''增加一个hopping项
-        op1和op2应当是两个格子的产生算符
+        op1和op2应当是两个格子的产生算符，coeft是这个bond的强度
+        ``````
+        Issue#11: 增加bond大小的设置
         '''
         if op1.basis.dim != self.basis.dim:
             raise ValueError('op1的dim对不上')
         if op2.basis.dim != self.basis.dim:
             raise ValueError('op2的dim对不上')
         # C^+_1 C_2
-        mat = numpy.matmul(op1.mat, op2.mat.transpose())
+        op2t = op2.mat.transpose()
+        mat = numpy.matmul(op1.mat, op2t)
         # + C^+_2 C_1
-        mat = mat + mat.transpose()
+        matt = mat.transpose()
+        mat = mat + matt
         # t系数
-        mat = -1.0 * mat
+        mat = -coeft * mat
         self.addnewterm(mat)
 
 

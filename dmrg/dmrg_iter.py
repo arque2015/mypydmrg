@@ -9,9 +9,10 @@ from dmrghelpers.superblockhelper import rightext_hamiltonian_to_superblock
 from dmrghelpers.superblockhelper import leftext_oper_to_superblock
 from dmrghelpers.superblockhelper import rightext_oper_to_superblock
 from dmrghelpers.hamhelper import plus_two_hamiltonian
-from .storages import BlockStorage
+from .storages import BlockStorage, DMRGConfig
 
 def get_superblock_ham(
+        conf: DMRGConfig,
         leftstorage: BlockStorage,
         rightstorage: BlockStorage,
         spin_sector,
@@ -56,8 +57,10 @@ def get_superblock_ham(
             op2down = rightext_oper_to_superblock(superext, op2down)
             op_dict[op2_idx] = (op2up, op2down)
         #把这个新的hopping项加进去
-        superham.add_hopping_term(op1up, op2up)
-        superham.add_hopping_term(op1down, op2down)
+        coef_t = conf.model.get_t_coef(op1_idx, op2_idx)
+        #TODO: 优化这个时候的add_hopping_term
+        superham.add_hopping_term(op1up, op2up, coef_t)
+        superham.add_hopping_term(op1down, op2down, coef_t)
     #找到符合sector的所有idx
     sector_idxs = []
     for stcode in superext.iter_sitecode():
