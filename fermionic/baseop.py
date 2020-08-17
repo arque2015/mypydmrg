@@ -4,6 +4,7 @@
 
 import numpy
 from basics.operator import Operator
+from fermionic.superblock import SuperBlockExtend
 
 class BaseOperator(Operator):
     """一个通用的单个格子的算符
@@ -119,7 +120,69 @@ class Hamiltonian(Operator):
         # t系数
         mat = -coeft * mat
         self.addnewterm(mat)
+        return mat
 
+
+    @profile
+    def superblock_add_hopping_term(
+            self,
+            op1: BaseOperator, op2: BaseOperator,
+            coeft
+        ):
+        '''在superblock上添加hopping项目\n
+        op1必须是leftblockext上面的算符，op2也必须是rightblockext\n
+        Issue#16：优化速度
+        '''
+        #先将left算符整理成平的，在整理之前先把列的粒子数统计
+        #这个和反对易的符号有关系
+        if not isinstance(self._basis, SuperBlockExtend):
+            raise ValueError('只能给superblock用')
+        leftext = self._basis.leftblockextend
+        rightext = self._basis.rightblockextend
+        mat1 = numpy.ndarray(numpy.shape(op1.mat))
+        for col in leftext.iter_idx():
+            _pnum = leftext.spin_nums[col]
+            _parti_num = numpy.sum(_pnum)
+            if _parti_num % 2 == 0:
+                mat1[:, col] = op1.mat[:, col]
+            else:
+                mat1[:, col] = -op1.mat[:, col]
+        #将左右两个算符整理成向量
+        #mat1 = numpy.reshape(mat1, [numpy.square(leftext.dim)])
+        #mat2 = numpy.reshape(op2.mat.transpose(), [numpy.square(rightext.dim)])
+        ##给两个向量做外积，这个时候出来的矩阵的形状是（ld1*ld2, rd1*rd2）
+        ##目标的形状是（ld1*rd1, ld2*rd2)
+        #mato = numpy.outer(mat1, mat2)
+        ##给现在的reshape,把ld1,ld2,rd1,rd2分开
+        #mato = numpy.reshape(mato,\
+        #    [leftext.dim, leftext.dim,\
+        #        rightext.dim, rightext.dim])
+        ##调整顺序，注意在numpy中存储的时候，是先遍历靠后的指标的，
+        ##所以调整成（rd1, ld1, rd2, ld2)
+        #mato = numpy.transpose(mato, [2, 0, 3, 1])
+        #用einsum不会让reshape变的特别慢，虽然reshape还是很慢
+        #为什么einsum快不知道
+        #mat2 = op2.mat.transpose()#einsum中改顺序了，这个时候用哪个都差不多速度区别不大
+        mat2 = op2.mat
+        mato = numpy.einsum('ij,lk->kilj', mat1, mat2)
+        #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
+        #和需要的（ld1*rd1, ld2*rd2）是一样的
+        _dim = leftext.dim * rightext.dim
+        mato = numpy.reshape(mato, [_dim, _dim])
+        #加上他的复共厄（纯实所以是转置）
+        #mato = numpy.random.randn(_dim, _dim)
+        #matot = numpy.random.randn(_dim, _dim)
+        #matot = mato.transpose()#numpy.random.randn(_dim, _dim)
+        #matot = mato[::-1]
+        #numpy.copy(mato).transpose()#mato.T#transpose()
+        #mato = mato + matot#numpy.add(mato, matot)#
+        for idx in range(_dim):
+            mato[idx, idx:] = mato[idx, idx:] + mato[idx:, idx]
+            mato[idx:, idx] = mato[idx, idx:]
+        # t系数
+        mato = -coeft * mato
+        self.addnewterm(mato)
+        return mato
 
     def add_u_term(self, opu: BaseOperator, coef_u):
         '''添加一个U项'''

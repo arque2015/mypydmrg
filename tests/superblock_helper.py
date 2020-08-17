@@ -10,9 +10,7 @@ from dmrghelpers.blockhelper import update_to_leftblock, update_to_rightblock
 from dmrghelpers.operhelper import OperFactory
 from dmrghelpers.operhelper import create_operator_of_site
 from dmrghelpers.operhelper import leftsite_extend_oper, leftblock_extend_oper
-from dmrghelpers.operhelper import leftsite_extend_oper_
 from dmrghelpers.operhelper import rightsite_extend_oper, rightblock_extend_oper
-from dmrghelpers.operhelper import rightblock_extend_oper_
 from dmrghelpers.operhelper import update_leftblockextend_oper
 from dmrghelpers.operhelper import update_rightblockextend_oper
 from dmrghelpers.hamhelper import create_hamiltonian_of_site
@@ -51,14 +49,10 @@ def test1():
     cup_in_1 = leftblock_extend_oper(left1ext, cup_in_1)
     #扩展以后有C^+_2
     cup_in_2 = create_operator_of_site(left1ext.stbss, OperFactory.create_spinup())
-    _cup_in_2_ = test_clock(leftsite_extend_oper_, left1ext, cup_in_2)
-    cup_in_2 = test_clock(leftsite_extend_oper, left1ext, cup_in_2)
-    print('对比leftsite_extend_oper', numpy.allclose(_cup_in_2_.mat, cup_in_2.mat))
+    cup_in_2 = leftsite_extend_oper(left1ext, cup_in_2)
     #扩展以后的U2
     ciu_in_2 = create_operator_of_site(left1ext.stbss, OperFactory.create_u())
-    _ciu_in_2_ = test_clock(leftsite_extend_oper_, left1ext, ciu_in_2)
-    ciu_in_2 = test_clock(leftsite_extend_oper, left1ext, ciu_in_2)
-    print('对比leftsite_extend_oper', numpy.allclose(_ciu_in_2_.mat, ciu_in_2.mat))
+    ciu_in_2 = leftsite_extend_oper(left1ext, ciu_in_2)
     #现在C^+_1和C^+_2都在|phi^1, s^2>这个left1ext基上，整合进哈密顿量
     #先把哈密顿量也放到|phi^1, s^2>这个基上
     hamleft = extend_leftblock_hamiltonian(hamleft, left1ext)
@@ -78,9 +72,7 @@ def test1():
     cup_in_2 = leftblock_extend_oper(left2ext, cup_in_2)
     #创建第三个格子的算符，然后放到|phi^2, s^3>
     cup_in_3 = create_operator_of_site(left2ext.stbss, OperFactory.create_spinup())
-    _cup_in_3_ = test_clock(leftsite_extend_oper_, left2ext, cup_in_3)
-    cup_in_3 = test_clock(leftsite_extend_oper, left2ext, cup_in_3)
-    print('对比leftsite_extend_oper', numpy.allclose(_cup_in_3_.mat, cup_in_3.mat))
+    cup_in_3 = leftsite_extend_oper(left2ext, cup_in_3)
     #把2-3之间的hopping放到哈密顿量里
     hamleft.add_hopping_term(cup_in_2, cup_in_3, 1.0)
     #把|phi^2, s^3>这个东西以后要用来生成supoerblock
@@ -96,9 +88,7 @@ def test1():
     #将第5个格子扩展到第4个 |s^4, phi^1>
     rightext = extend_rightblock(right)
     #把第5个格子的算符扩展
-    _cup_in_5_ = test_clock(rightblock_extend_oper_, rightext, cup_in_5)
-    cup_in_5 = test_clock(rightblock_extend_oper, rightext, cup_in_5)
-    print('对比rightblock_extend_oper', numpy.allclose(_cup_in_5_.mat, cup_in_5.mat))
+    cup_in_5 = rightblock_extend_oper(rightext, cup_in_5)
     #创建第四个格子的算符并且扩展
     cup_in_4 = create_operator_of_site(rightext.stbss, OperFactory.create_spinup())
     cup_in_4 = rightsite_extend_oper(rightext, cup_in_4)
@@ -118,9 +108,9 @@ def test1():
     print(superblock)
     #把左边的哈密顿量扩展到superblock上面
     hamleft = leftext_hamiltonian_to_superblock(superblock, hamleft)
-    cup_in_3 = leftext_oper_to_superblock(superblock, cup_in_3)
+    cup_in_3_e = leftext_oper_to_superblock(superblock, cup_in_3)
     print(hamleft)
-    print(cup_in_3)
+    print(cup_in_3_e)
     #
     #for ridx in superblock.iter_idx():
     #    for lidx in superblock.iter_idx():
@@ -179,8 +169,8 @@ def test1():
     #        print(rsta, lsta, hamright.mat[lidx, ridx])
     #
     #把右边的算符扩展到superblock上面
-    cup_in_4 = rightext_oper_to_superblock(superblock, cup_in_4)
-    print(cup_in_4)
+    cup_in_4_e = rightext_oper_to_superblock(superblock, cup_in_4)
+    print(cup_in_4_e)
     #for ridx in superblock.iter_idx():
     #    for lidx in superblock.iter_idx():
     #        if cup_in_4.mat[lidx, ridx] == 0:
@@ -199,7 +189,9 @@ def test1():
     #                        superblock.rightblockextend.rblk.idx_to_state(idx4))
     #        print(rsta, lsta, cup_in_4.mat[lidx, ridx])
     hamsuper = plus_two_hamiltonian(hamleft, hamright)
-    hamsuper.add_hopping_term(cup_in_3, cup_in_4, 1.0)
+    res1 = hamsuper.add_hopping_term(cup_in_3_e, cup_in_4_e, 1.0)
+    res2 = hamsuper.superblock_add_hopping_term(cup_in_3, cup_in_4, 1.0)
+    print('superblock_add_hopping_term: ', numpy.allclose(res1, res2))
     print(hamsuper)
     #for ridx in superblock.iter_idx():
     #    for lidx in superblock.iter_idx():
@@ -234,9 +226,7 @@ def test2():
     cdn_in_1 = leftblock_extend_oper(left1ext, cdn_in_1)
     #扩展以后有C^+_2
     cdn_in_2 = create_operator_of_site(left1ext.stbss, OperFactory.create_spindown())
-    _cdn_in_2_ = test_clock(leftsite_extend_oper_, left1ext, cdn_in_2)
-    cdn_in_2 = test_clock(leftsite_extend_oper, left1ext, cdn_in_2)
-    print('对比leftsite_extend_oper', numpy.allclose(_cdn_in_2_.mat, cdn_in_2.mat))
+    cdn_in_2 = leftsite_extend_oper(left1ext, cdn_in_2)
     #现在C^+_1和C^+_2都在|phi^1, s^2>这个left1ext基上，整合进哈密顿量
     #先把哈密顿量也放到|phi^1, s^2>这个基上
     hamleft = extend_leftblock_hamiltonian(hamleft, left1ext)
@@ -254,9 +244,8 @@ def test2():
     cdn_in_2 = leftblock_extend_oper(left2ext, cdn_in_2)
     #创建第三个格子的算符，然后放到|phi^2, s^3>
     cdn_in_3 = create_operator_of_site(left2ext.stbss, OperFactory.create_spindown())
-    _cdn_in_3_ = test_clock(leftsite_extend_oper_, left2ext, cdn_in_3)
-    cdn_in_3 = test_clock(leftsite_extend_oper, left2ext, cdn_in_3)
-    print('对比leftsite_extend_oper', numpy.allclose(_cdn_in_3_.mat, cdn_in_3.mat))
+    cdn_in_3._mat = numpy.random.randn(cdn_in_3.mat.shape[0], cdn_in_3.mat.shape[1])
+    cdn_in_3 = leftsite_extend_oper(left2ext, cdn_in_3)
     #把2-3之间的hopping放到哈密顿量里
     hamleft.add_hopping_term(cdn_in_2, cdn_in_3, 1.0)
     #把|phi^2, s^3>这个东西以后要用来生成supoerblock
@@ -271,11 +260,11 @@ def test2():
     #将第5个格子扩展到第4个 |s^4, phi^1>
     rightext = extend_rightblock(right)
     #把第5个格子的算符扩展
-    _cdn_in_5_ = test_clock(rightblock_extend_oper_, rightext, cdn_in_5)
-    cdn_in_5 = test_clock(rightblock_extend_oper, rightext, cdn_in_5)
-    print('对比rightblock_extend_oper', numpy.allclose(_cdn_in_5_.mat, cdn_in_5.mat))
+    cdn_in_5 = rightblock_extend_oper(rightext, cdn_in_5)
     #创建第四个格子的算符并且扩展
     cdn_in_4 = create_operator_of_site(rightext.stbss, OperFactory.create_spindown())
+    #Issue #16：用一个随机的矩阵来验证优化的正确性
+    cdn_in_4._mat = numpy.random.randn(cdn_in_4.mat.shape[0], cdn_in_4.mat.shape[1])
     cdn_in_4 = rightsite_extend_oper(rightext, cdn_in_4)
     #把哈密顿量扩展到|s^4, phi^1>
     hamright = extend_rightblock_hamiltonian(hamright, rightext)
@@ -289,18 +278,20 @@ def test2():
     print(superblock)
     #把左边的哈密顿量扩展到superblock上面
     hamleft = leftext_hamiltonian_to_superblock(superblock, hamleft)
-    cdn_in_3 = leftext_oper_to_superblock(superblock, cdn_in_3)
+    cdn_in_3_e = leftext_oper_to_superblock(superblock, cdn_in_3)
     print(hamleft)
-    print(cdn_in_3)
+    print(cdn_in_3_e)
     #把右边的哈密顿量扩展到superblock上面
     hamright = rightext_hamiltonian_to_superblock(superblock, hamright)
     print(hamright)
     #把右边的算符扩展到superblock上面
-    cdn_in_4 = rightext_oper_to_superblock(superblock, cdn_in_4)
-    print(cdn_in_4)
+    cdn_in_4_e = rightext_oper_to_superblock(superblock, cdn_in_4)
+    print(cdn_in_4_e)
     #
     hamsuper = plus_two_hamiltonian(hamleft, hamright)
-    hamsuper.add_hopping_term(cdn_in_3, cdn_in_4, 1.0)
+    res1 = hamsuper.add_hopping_term(cdn_in_3_e, cdn_in_4_e, 1.0)
+    res2 = hamsuper.superblock_add_hopping_term(cdn_in_3, cdn_in_4, 1.0)
+    print('superblock_add_hopping_term: ', numpy.allclose(res1, res2))
     print(hamsuper)
     #for ridx in superblock.iter_idx():
     #    for lidx in superblock.iter_idx():
