@@ -43,24 +43,25 @@ def get_superblock_ham(
             op1up, op1down = op_dict[op1_idx]
         else:
             op1up = leftstorage.get_oper(op1_idx, 1)
-            op1up = leftext_oper_to_superblock(superext, op1up)
+            #op1up = leftext_oper_to_superblock(superext, op1up)
             op1down = leftstorage.get_oper(op1_idx, -1)
-            op1down = leftext_oper_to_superblock(superext, op1down)
+            #op1down = leftext_oper_to_superblock(superext, op1down)
             op_dict[op1_idx] = (op1up, op1down)
         #找出第二个位置上的两个算符
         if op2_idx in op_dict:
             op2up, op2down = op_dict[op2_idx]
         else:
             op2up = rightstorage.get_oper(op2_idx, 1)
-            op2up = rightext_oper_to_superblock(superext, op2up)
+            #op2up = rightext_oper_to_superblock(superext, op2up)
             op2down = rightstorage.get_oper(op2_idx, -1)
-            op2down = rightext_oper_to_superblock(superext, op2down)
+            #op2down = rightext_oper_to_superblock(superext, op2down)
             op_dict[op2_idx] = (op2up, op2down)
         #把这个新的hopping项加进去
+        #Issue #16: 现在不需要扩展到superblock上的算符
+        #只需要在ext上面的算符，op_dict以后也没有用了
         coef_t = conf.model.get_t_coef(op1_idx, op2_idx)
-        #TODO: 优化这个时候的add_hopping_term
-        superham.add_hopping_term(op1up, op2up, coef_t)
-        superham.add_hopping_term(op1down, op2down, coef_t)
+        superham.superblock_add_hopping_term(op1up, op2up, coef_t)
+        superham.superblock_add_hopping_term(op1down, op2down, coef_t)
     #找到符合sector的所有idx
     sector_idxs = []
     for stcode in superext.iter_sitecode():
