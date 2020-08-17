@@ -1,0 +1,288 @@
+Wrote profile results to superblock_helper.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 0.142015 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: add_hopping_term at line 99
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    99                                               @profile#使用line_profiler进行性能分析的时候把这个注释去掉
+   100                                               def add_hopping_term(
+   101                                                       self,
+   102                                                       op1: BaseOperator, op2: BaseOperator,
+   103                                                       coeft
+   104                                                   ):
+   105                                                   '''增加一个hopping项
+   106                                                   op1和op2应当是两个格子的产生算符，coeft是这个bond的强度
+   107                                                   ``````
+   108                                                   Issue#11: 增加bond大小的设置
+   109                                                   '''
+   110         8         47.0      5.9      0.0          if op1.basis.dim != self.basis.dim:
+   111                                                       raise ValueError('op1的dim对不上')
+   112         8         15.0      1.9      0.0          if op2.basis.dim != self.basis.dim:
+   113                                                       raise ValueError('op2的dim对不上')
+   114                                                   # C^+_1 C_2
+   115         8         26.0      3.2      0.0          op2t = op2.mat.transpose()
+   116         8     111542.0  13942.8     78.5          mat = numpy.matmul(op1.mat, op2t)
+   117                                                   # + C^+_2 C_1
+   118         8         19.0      2.4      0.0          matt = mat.transpose()
+   119         8      23407.0   2925.9     16.5          mat = mat + matt
+   120                                                   # t系数
+   121         8       4287.0    535.9      3.0          mat = -coeft * mat
+   122         8       2664.0    333.0      1.9          self.addnewterm(mat)
+   123         8          8.0      1.0      0.0          return mat
+
+Total time: 0.043044 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: superblock_add_hopping_term at line 126
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   126                                               @profile
+   127                                               def superblock_add_hopping_term(
+   128                                                       self,
+   129                                                       op1: BaseOperator, op2: BaseOperator,
+   130                                                       coeft
+   131                                                   ):
+   132                                                   '''在superblock上添加hopping项目\n
+   133                                                   op1必须是leftblockext上面的算符，op2也必须是rightblockext\n
+   134                                                   Issue#16：优化速度
+   135                                                   '''
+   136                                                   #先将left算符整理成平的，在整理之前先把列的粒子数统计
+   137                                                   #这个和反对易的符号有关系
+   138         2          6.0      3.0      0.0          if not isinstance(self._basis, SuperBlockExtend):
+   139                                                       raise ValueError('只能给superblock用')
+   140         2          7.0      3.5      0.0          leftext = self._basis.leftblockextend
+   141         2          4.0      2.0      0.0          rightext = self._basis.rightblockextend
+   142         2         46.0     23.0      0.1          mat1 = numpy.ndarray(numpy.shape(op1.mat))
+   143       130        147.0      1.1      0.3          for col in leftext.iter_idx():
+   144       128        284.0      2.2      0.7              _pnum = leftext.spin_nums[col]
+   145       128       1172.0      9.2      2.7              _parti_num = numpy.sum(_pnum)
+   146       128        175.0      1.4      0.4              if _parti_num % 2 == 0:
+   147        64        143.0      2.2      0.3                  mat1[:, col] = op1.mat[:, col]
+   148                                                       else:
+   149        64        209.0      3.3      0.5                  mat1[:, col] = -op1.mat[:, col]
+   150                                                   #将左右两个算符整理成向量
+   151         2         58.0     29.0      0.1          mat1 = numpy.reshape(mat1, [numpy.square(leftext.dim)])
+   152         2         24.0     12.0      0.1          mat2 = numpy.reshape(op2.mat.transpose(), [numpy.square(rightext.dim)])
+   153                                                   #给两个向量做外积，这个时候出来的矩阵的形状是（ld1*ld2, rd1*rd2）
+   154                                                   #目标的形状是（ld1*rd1, ld2*rd2)
+   155         2       4464.0   2232.0     10.4          mato = numpy.outer(mat1, mat2)
+   156                                                   #给现在的reshape,把ld1,ld2,rd1,rd2分开
+   157         4         55.0     13.8      0.1          mato = numpy.reshape(mato,\
+   158         4         11.0      2.8      0.0              [leftext.dim, leftext.dim,\
+   159         2          4.0      2.0      0.0                  rightext.dim, rightext.dim])
+   160                                                   #调整顺序，注意在numpy中存储的时候，是先遍历靠后的指标的，
+   161                                                   #所以调整成（rd1, ld1, rd2, ld2)
+   162         2         23.0     11.5      0.1          mato = numpy.transpose(mato, [2, 0, 3, 1])
+   163                                                   #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
+   164                                                   #和需要的（ld1*rd1, ld2*rd2）是一样的
+   165         2          6.0      3.0      0.0          _dim = leftext.dim * rightext.dim
+   166         2       9041.0   4520.5     21.0          mato = numpy.reshape(mato, [_dim, _dim])
+   167                                                   #加上他的复共厄（纯实所以是转置）
+   168         2          9.0      4.5      0.0          matot = mato.transpose()
+   169         2      20523.0  10261.5     47.7          mato = mato + matot
+   170                                                   # t系数
+   171         2       4051.0   2025.5      9.4          mato = -coeft * mato
+   172         2       2577.0   1288.5      6.0          self.addnewterm(mato)
+   173         2          5.0      2.5      0.0          return mato
+
+
+Wrote profile results to ladder_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 45.2863 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: superblock_add_hopping_term at line 126
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   126                                               @profile
+   127                                               def superblock_add_hopping_term(
+   128                                                       self,
+   129                                                       op1: BaseOperator, op2: BaseOperator,
+   130                                                       coeft
+   131                                                   ):
+   132                                                   '''在superblock上添加hopping项目\n
+   133                                                   op1必须是leftblockext上面的算符，op2也必须是rightblockext\n
+   134                                                   Issue#16：优化速度
+   135                                                   '''
+   136                                                   #先将left算符整理成平的，在整理之前先把列的粒子数统计
+   137                                                   #这个和反对易的符号有关系
+   138        40        128.0      3.2      0.0          if not isinstance(self._basis, SuperBlockExtend):
+   139                                                       raise ValueError('只能给superblock用')
+   140        40        109.0      2.7      0.0          leftext = self._basis.leftblockextend
+   141        40         51.0      1.3      0.0          rightext = self._basis.rightblockextend
+   142        40        690.0     17.2      0.0          mat1 = numpy.ndarray(numpy.shape(op1.mat))
+   143      2224       2100.0      0.9      0.0          for col in leftext.iter_idx():
+   144      2184       5686.0      2.6      0.0              _pnum = leftext.spin_nums[col]
+   145      2184      15905.0      7.3      0.0              _parti_num = numpy.sum(_pnum)
+   146      2184       2392.0      1.1      0.0              if _parti_num % 2 == 0:
+   147      1092       2048.0      1.9      0.0                  mat1[:, col] = op1.mat[:, col]
+   148                                                       else:
+   149      1092       2841.0      2.6      0.0                  mat1[:, col] = -op1.mat[:, col]
+   150                                                   #将左右两个算符整理成向量
+   151        40        800.0     20.0      0.0          mat1 = numpy.reshape(mat1, [numpy.square(leftext.dim)])
+   152        40        794.0     19.9      0.0          mat2 = numpy.reshape(op2.mat.transpose(), [numpy.square(rightext.dim)])
+   153                                                   #给两个向量做外积，这个时候出来的矩阵的形状是（ld1*ld2, rd1*rd2）
+   154                                                   #目标的形状是（ld1*rd1, ld2*rd2)
+   155        40     511375.0  12784.4      1.1          mato = numpy.outer(mat1, mat2)
+   156                                                   #给现在的reshape,把ld1,ld2,rd1,rd2分开
+   157        80        986.0     12.3      0.0          mato = numpy.reshape(mato,\
+   158        80        208.0      2.6      0.0              [leftext.dim, leftext.dim,\
+   159        40         62.0      1.6      0.0                  rightext.dim, rightext.dim])
+   160                                                   #调整顺序，注意在numpy中存储的时候，是先遍历靠后的指标的，
+   161                                                   #所以调整成（rd1, ld1, rd2, ld2)
+   162        40        279.0      7.0      0.0          mato = numpy.transpose(mato, [2, 0, 3, 1])
+   163                                                   #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
+   164                                                   #和需要的（ld1*rd1, ld2*rd2）是一样的
+   165        40         76.0      1.9      0.0          _dim = leftext.dim * rightext.dim
+   166        40   21764576.0 544114.4     48.1          mato = numpy.reshape(mato, [_dim, _dim])
+   167                                                   #加上他的复共厄（纯实所以是转置）
+   168        40        272.0      6.8      0.0          matot = mato.transpose()
+   169        40   22091864.0 552296.6     48.8          mato = mato + matot
+   170                                                   # t系数
+   171        40     495816.0  12395.4      1.1          mato = -coeft * mato
+   172        40     387103.0   9677.6      0.9          self.addnewterm(mato)
+   173        40         91.0      2.3      0.0          return mato
+
+
+用einsum不用transpose的，一旦涉及到transpose(),之后的操作就会非常的慢
+Wrote profile results to ladder_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 24.5774 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: superblock_add_hopping_term at line 126
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   126                                               @profile
+   127                                               def superblock_add_hopping_term(
+   128                                                       self,
+   129                                                       op1: BaseOperator, op2: BaseOperator,
+   130                                                       coeft
+   131                                                   ):
+   132                                                   '''在superblock上添加hopping项目\n
+   133                                                   op1必须是leftblockext上面的算符，op2也必须是rightblockext\n
+   134                                                   Issue#16：优化速度
+   135                                                   '''
+   136                                                   #先将left算符整理成平的，在整理之前先把列的粒子数统计
+   137                                                   #这个和反对易的符号有关系
+   138        40        124.0      3.1      0.0          if not isinstance(self._basis, SuperBlockExtend):
+   139                                                       raise ValueError('只能给superblock用')
+   140        40        101.0      2.5      0.0          leftext = self._basis.leftblockextend
+   141        40         53.0      1.3      0.0          rightext = self._basis.rightblockextend
+   142        40        707.0     17.7      0.0          mat1 = numpy.ndarray(numpy.shape(op1.mat))
+   143      2224       2023.0      0.9      0.0          for col in leftext.iter_idx():
+   144      2184       5697.0      2.6      0.0              _pnum = leftext.spin_nums[col]
+   145      2184      15578.0      7.1      0.1              _parti_num = numpy.sum(_pnum)
+   146      2184       2288.0      1.0      0.0              if _parti_num % 2 == 0:
+   147      1092       1997.0      1.8      0.0                  mat1[:, col] = op1.mat[:, col]
+   148                                                       else:
+   149      1092       2857.0      2.6      0.0                  mat1[:, col] = -op1.mat[:, col]
+   150                                                   #将左右两个算符整理成向量
+   151                                                   #mat1 = numpy.reshape(mat1, [numpy.square(leftext.dim)])
+   152                                                   #mat2 = numpy.reshape(op2.mat.transpose(), [numpy.square(rightext.dim)])
+   153                                                   ##给两个向量做外积，这个时候出来的矩阵的形状是（ld1*ld2, rd1*rd2）
+   154                                                   ##目标的形状是（ld1*rd1, ld2*rd2)
+   155                                                   #mato = numpy.outer(mat1, mat2)
+   156                                                   ##给现在的reshape,把ld1,ld2,rd1,rd2分开
+   157                                                   #mato = numpy.reshape(mato,\
+   158                                                   #    [leftext.dim, leftext.dim,\
+   159                                                   #        rightext.dim, rightext.dim])
+   160                                                   ##调整顺序，注意在numpy中存储的时候，是先遍历靠后的指标的，
+   161                                                   ##所以调整成（rd1, ld1, rd2, ld2)
+   162                                                   #mato = numpy.transpose(mato, [2, 0, 3, 1])
+   163        40         76.0      1.9      0.0          mat2 = op2.mat.transpose()
+   164        40     678465.0  16961.6      2.8          mato = numpy.einsum('ij,kl->kilj', mat1, mat2)
+   165                                                   #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
+   166                                                   #和需要的（ld1*rd1, ld2*rd2）是一样的
+   167        40        382.0      9.6      0.0          _dim = leftext.dim * rightext.dim
+   168                                                   #mato = numpy.reshape(mato, [_dim, rightext.dim, leftext.dim])
+   169        40     705447.0  17636.2      2.9          mato = numpy.reshape(mato, [_dim, _dim])
+   170                                                   #加上他的复共厄（纯实所以是转置）
+   171        40        174.0      4.3      0.0          matot = mato.transpose()
+   172        40   22283495.0 557087.4     90.7          mato = mato + matot
+   173                                                   # t系数
+   174        40     491537.0  12288.4      2.0          mato = -coeft * mato
+   175        40     386350.0   9658.8      1.6          self.addnewterm(mato)
+   176        40         80.0      2.0      0.0          return mato
+
+
+Wrote profile results to ladder_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 3.86275 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: superblock_add_hopping_term at line 126
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   126                                               @profile
+   127                                               def superblock_add_hopping_term(
+   128                                                       self,
+   129                                                       op1: BaseOperator, op2: BaseOperator,
+   130                                                       coeft
+   131                                                   ):
+   132                                                   '''在superblock上添加hopping项目\n
+   133                                                   op1必须是leftblockext上面的算符，op2也必须是rightblockext\n
+   134                                                   Issue#16：优化速度
+   135                                                   '''
+   136                                                   #先将left算符整理成平的，在整理之前先把列的粒子数统计
+   137                                                   #这个和反对易的符号有关系
+   138        40        138.0      3.5      0.0          if not isinstance(self._basis, SuperBlockExtend):
+   139                                                       raise ValueError('只能给superblock用')
+   140        40        108.0      2.7      0.0          leftext = self._basis.leftblockextend
+   141        40         55.0      1.4      0.0          rightext = self._basis.rightblockextend
+   142        40        789.0     19.7      0.0          mat1 = numpy.ndarray(numpy.shape(op1.mat))
+   143      2224       2078.0      0.9      0.1          for col in leftext.iter_idx():
+   144      2184       5649.0      2.6      0.1              _pnum = leftext.spin_nums[col]
+   145      2184      16273.0      7.5      0.4              _parti_num = numpy.sum(_pnum)
+   146      2184       2432.0      1.1      0.1              if _parti_num % 2 == 0:
+   147      1092       2102.0      1.9      0.1                  mat1[:, col] = op1.mat[:, col]
+   148                                                       else:
+   149      1092       2890.0      2.6      0.1                  mat1[:, col] = -op1.mat[:, col]
+   150                                                   #将左右两个算符整理成向量
+   151                                                   #mat1 = numpy.reshape(mat1, [numpy.square(leftext.dim)])
+   152                                                   #mat2 = numpy.reshape(op2.mat.transpose(), [numpy.square(rightext.dim)])
+   153                                                   ##给两个向量做外积，这个时候出来的矩阵的形状是（ld1*ld2, rd1*rd2）
+   154                                                   ##目标的形状是（ld1*rd1, ld2*rd2)
+   155                                                   #mato = numpy.outer(mat1, mat2)
+   156                                                   ##给现在的reshape,把ld1,ld2,rd1,rd2分开
+   157                                                   #mato = numpy.reshape(mato,\
+   158                                                   #    [leftext.dim, leftext.dim,\
+   159                                                   #        rightext.dim, rightext.dim])
+   160                                                   ##调整顺序，注意在numpy中存储的时候，是先遍历靠后的指标的，
+   161                                                   ##所以调整成（rd1, ld1, rd2, ld2)
+   162                                                   #mato = numpy.transpose(mato, [2, 0, 3, 1])
+   163                                                   #用einsum不会让reshape变的特别慢，虽然reshape还是很慢
+   164                                                   #为什么einsum快不知道
+   165                                                   #mat2 = op2.mat.transpose()#einsum中改顺序了，这个时候用哪个都差不多速度区别不大
+   166        40         32.0      0.8      0.0          mat2 = op2.mat
+   167        40     728630.0  18215.8     18.9          mato1 = numpy.einsum('ij,lk->kilj', mat1, mat2)
+   168                                                   #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
+   169                                                   #和需要的（ld1*rd1, ld2*rd2）是一样的
+   170        40        423.0     10.6      0.0          _dim = leftext.dim * rightext.dim
+   171                                                   #mato1 = numpy.reshape(mato1, [_dim, _dim])
+   172                                                   #加上他的复共厄（纯实所以是转置）
+   173                                                   #mato = numpy.random.randn(_dim, _dim)
+   174                                                   #matot = numpy.random.randn(_dim, _dim)
+   175                                                   #matot = mato.transpose()#numpy.random.randn(_dim, _dim)
+   176                                                   #matot = mato[::-1]
+   177                                                   #numpy.copy(mato).transpose()#mato.T#transpose()
+   178                                                   #mato = mato + matot#numpy.add(mato, matot)#
+   179                                                   #for idx in range(_dim):
+   180                                                   #    mato[idx, idx:] = mato[idx, idx:] + mato[idx:, idx]
+   181                                                   #    mato[idx:, idx] = mato[idx, idx:]
+   182                                                   #mato = add_transpose_to(mato)
+   183                                                   #利用转置会触发copy，非常慢
+   184        40     690107.0  17252.7     17.9          mato2 = numpy.einsum('kl,ji->kilj', mat2, mat1)
+   185                                                   #mato2 = numpy.reshape(mato2, [_dim, _dim])
+   186        40    1470580.0  36764.5     38.1          mato = mato1 + mato2
+   187        40       1372.0     34.3      0.0          mato = numpy.reshape(mato, [_dim, _dim])
+   188                                                   # t系数
+   189        40     562866.0  14071.6     14.6          mato = -coeft * mato
+   190        40     376129.0   9403.2      9.7          self.addnewterm(mato)
+   191        40         99.0      2.5      0.0          return mato
