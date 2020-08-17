@@ -1,8 +1,9 @@
 # py缓存
 __pycache__
 
-# vscode
+# vscode和插件
 .vscode
+.VSC*
 
 # 测试
 /tests/*

@@ -1,0 +1,71 @@
+这个是包含了get_superblock_ham中的结果
+Wrote profile results to ladder_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 61.3801 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: add_hopping_term at line 98
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    98                                               @profile
+    99                                               def add_hopping_term(
+   100                                                       self,
+   101                                                       op1: BaseOperator, op2: BaseOperator,
+   102                                                       coeft
+   103                                                   ):
+   104                                                   '''增加一个hopping项
+   105                                                   op1和op2应当是两个格子的产生算符，coeft是这个bond的强度
+   106                                                   ``````
+   107                                                   Issue#11: 增加bond大小的设置
+   108                                                   '''
+   109        74        575.0      7.8      0.0          if op1.basis.dim != self.basis.dim:
+   110                                                       raise ValueError('op1的dim对不上')
+   111        74        141.0      1.9      0.0          if op2.basis.dim != self.basis.dim:
+   112                                                       raise ValueError('op2的dim对不上')
+   113                                                   # C^+_1 C_2
+   114        74        263.0      3.6      0.0          op2t = op2.mat.transpose()
+   115        74   40740588.0 550548.5     66.4          mat = numpy.matmul(op1.mat, op2t)
+   116                                                   # + C^+_2 C_1
+   117        74        454.0      6.1      0.0          matt = mat.transpose()
+   118        74   19653434.0 265586.9     32.0          mat = mat + matt
+   119                                                   # t系数
+   120        74     604388.0   8167.4      1.0          mat = -coeft * mat
+   121        74     380278.0   5138.9      0.6          self.addnewterm(mat)
+
+
+这个是不包含get_superblock_ham中的结果
+
+Wrote profile results to ladder_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 0.01809 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: add_hopping_term at line 98
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    98                                               @profile
+    99                                               def add_hopping_term(
+   100                                                       self,
+   101                                                       op1: BaseOperator, op2: BaseOperator,
+   102                                                       coeft
+   103                                                   ):
+   104                                                   '''增加一个hopping项
+   105                                                   op1和op2应当是两个格子的产生算符，coeft是这个bond的强度
+   106                                                   ``````
+   107                                                   Issue#11: 增加bond大小的设置
+   108                                                   '''
+   109        34        201.0      5.9      1.1          if op1.basis.dim != self.basis.dim:
+   110                                                       raise ValueError('op1的dim对不上')
+   111        34         94.0      2.8      0.5          if op2.basis.dim != self.basis.dim:
+   112                                                       raise ValueError('op2的dim对不上')
+   113                                                   # C^+_1 C_2
+   114        34         86.0      2.5      0.5          op2t = op2.mat.transpose()
+   115        34      16145.0    474.9     89.2          mat = numpy.matmul(op1.mat, op2t)
+   116                                                   # + C^+_2 C_1
+   117        34         61.0      1.8      0.3          matt = mat.transpose()
+   118        34        778.0     22.9      4.3          mat = mat + matt
+   119                                                   # t系数
+   120        34        341.0     10.0      1.9          mat = -coeft * mat
+   121        34        384.0     11.3      2.1          self.addnewterm(mat)
