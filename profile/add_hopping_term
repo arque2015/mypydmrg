@@ -210,3 +210,79 @@ Line #      Hits         Time  Per Hit   % Time  Line Contents
    175        40     386350.0   9658.8      1.6          self.addnewterm(mato)
    176        40         80.0      2.0      0.0          return mato
 
+
+Wrote profile results to ladder_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 3.86275 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: superblock_add_hopping_term at line 126
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   126                                               @profile
+   127                                               def superblock_add_hopping_term(
+   128                                                       self,
+   129                                                       op1: BaseOperator, op2: BaseOperator,
+   130                                                       coeft
+   131                                                   ):
+   132                                                   '''在superblock上添加hopping项目\n
+   133                                                   op1必须是leftblockext上面的算符，op2也必须是rightblockext\n
+   134                                                   Issue#16：优化速度
+   135                                                   '''
+   136                                                   #先将left算符整理成平的，在整理之前先把列的粒子数统计
+   137                                                   #这个和反对易的符号有关系
+   138        40        138.0      3.5      0.0          if not isinstance(self._basis, SuperBlockExtend):
+   139                                                       raise ValueError('只能给superblock用')
+   140        40        108.0      2.7      0.0          leftext = self._basis.leftblockextend
+   141        40         55.0      1.4      0.0          rightext = self._basis.rightblockextend
+   142        40        789.0     19.7      0.0          mat1 = numpy.ndarray(numpy.shape(op1.mat))
+   143      2224       2078.0      0.9      0.1          for col in leftext.iter_idx():
+   144      2184       5649.0      2.6      0.1              _pnum = leftext.spin_nums[col]
+   145      2184      16273.0      7.5      0.4              _parti_num = numpy.sum(_pnum)
+   146      2184       2432.0      1.1      0.1              if _parti_num % 2 == 0:
+   147      1092       2102.0      1.9      0.1                  mat1[:, col] = op1.mat[:, col]
+   148                                                       else:
+   149      1092       2890.0      2.6      0.1                  mat1[:, col] = -op1.mat[:, col]
+   150                                                   #将左右两个算符整理成向量
+   151                                                   #mat1 = numpy.reshape(mat1, [numpy.square(leftext.dim)])
+   152                                                   #mat2 = numpy.reshape(op2.mat.transpose(), [numpy.square(rightext.dim)])
+   153                                                   ##给两个向量做外积，这个时候出来的矩阵的形状是（ld1*ld2, rd1*rd2）
+   154                                                   ##目标的形状是（ld1*rd1, ld2*rd2)
+   155                                                   #mato = numpy.outer(mat1, mat2)
+   156                                                   ##给现在的reshape,把ld1,ld2,rd1,rd2分开
+   157                                                   #mato = numpy.reshape(mato,\
+   158                                                   #    [leftext.dim, leftext.dim,\
+   159                                                   #        rightext.dim, rightext.dim])
+   160                                                   ##调整顺序，注意在numpy中存储的时候，是先遍历靠后的指标的，
+   161                                                   ##所以调整成（rd1, ld1, rd2, ld2)
+   162                                                   #mato = numpy.transpose(mato, [2, 0, 3, 1])
+   163                                                   #用einsum不会让reshape变的特别慢，虽然reshape还是很慢
+   164                                                   #为什么einsum快不知道
+   165                                                   #mat2 = op2.mat.transpose()#einsum中改顺序了，这个时候用哪个都差不多速度区别不大
+   166        40         32.0      0.8      0.0          mat2 = op2.mat
+   167        40     728630.0  18215.8     18.9          mato1 = numpy.einsum('ij,lk->kilj', mat1, mat2)
+   168                                                   #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
+   169                                                   #和需要的（ld1*rd1, ld2*rd2）是一样的
+   170        40        423.0     10.6      0.0          _dim = leftext.dim * rightext.dim
+   171                                                   #mato1 = numpy.reshape(mato1, [_dim, _dim])
+   172                                                   #加上他的复共厄（纯实所以是转置）
+   173                                                   #mato = numpy.random.randn(_dim, _dim)
+   174                                                   #matot = numpy.random.randn(_dim, _dim)
+   175                                                   #matot = mato.transpose()#numpy.random.randn(_dim, _dim)
+   176                                                   #matot = mato[::-1]
+   177                                                   #numpy.copy(mato).transpose()#mato.T#transpose()
+   178                                                   #mato = mato + matot#numpy.add(mato, matot)#
+   179                                                   #for idx in range(_dim):
+   180                                                   #    mato[idx, idx:] = mato[idx, idx:] + mato[idx:, idx]
+   181                                                   #    mato[idx:, idx] = mato[idx, idx:]
+   182                                                   #mato = add_transpose_to(mato)
+   183                                                   #利用转置会触发copy，非常慢
+   184        40     690107.0  17252.7     17.9          mato2 = numpy.einsum('kl,ji->kilj', mat2, mat1)
+   185                                                   #mato2 = numpy.reshape(mato2, [_dim, _dim])
+   186        40    1470580.0  36764.5     38.1          mato = mato1 + mato2
+   187        40       1372.0     34.3      0.0          mato = numpy.reshape(mato, [_dim, _dim])
+   188                                                   # t系数
+   189        40     562866.0  14071.6     14.6          mato = -coeft * mato
+   190        40     376129.0   9403.2      9.7          self.addnewterm(mato)
+   191        40         99.0      2.5      0.0          return mato

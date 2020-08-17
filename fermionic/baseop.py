@@ -4,7 +4,6 @@
 
 import numpy
 from basics.operator import Operator
-from basics.utils import add_transpose_to
 from fermionic.superblock import SuperBlockExtend
 
 class BaseOperator(Operator):
@@ -165,11 +164,11 @@ class Hamiltonian(Operator):
         #为什么einsum快不知道
         #mat2 = op2.mat.transpose()#einsum中改顺序了，这个时候用哪个都差不多速度区别不大
         mat2 = op2.mat
-        mato = numpy.einsum('ij,lk->kilj', mat1, mat2)
+        mato1 = numpy.einsum('ij,lk->kilj', mat1, mat2)
         #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
         #和需要的（ld1*rd1, ld2*rd2）是一样的
         _dim = leftext.dim * rightext.dim
-        mato = numpy.reshape(mato, [_dim, _dim])
+        #mato1 = numpy.reshape(mato1, [_dim, _dim])
         #加上他的复共厄（纯实所以是转置）
         #mato = numpy.random.randn(_dim, _dim)
         #matot = numpy.random.randn(_dim, _dim)
@@ -180,7 +179,12 @@ class Hamiltonian(Operator):
         #for idx in range(_dim):
         #    mato[idx, idx:] = mato[idx, idx:] + mato[idx:, idx]
         #    mato[idx:, idx] = mato[idx, idx:]
-        mato = add_transpose_to(mato)
+        #mato = add_transpose_to(mato)
+        #利用转置会触发copy，非常慢
+        mato2 = numpy.einsum('kl,ji->kilj', mat2, mat1)
+        #mato2 = numpy.reshape(mato2, [_dim, _dim])
+        mato = mato1 + mato2
+        mato = numpy.reshape(mato, [_dim, _dim])
         # t系数
         mato = -coeft * mato
         self.addnewterm(mato)
