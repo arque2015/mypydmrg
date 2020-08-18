@@ -32,7 +32,7 @@ def leftblockextend_to_next(
     rightstorage = conf.get_rightext_storage(phi_idx+2)
     #首先要把superblock拼出来
     sector_idxs, mat = get_superblock_ham(
-        conf, leftstorage, rightstorage, spin_sector, extrabonds
+        conf.model, leftstorage, rightstorage, spin_sector, extrabonds
     )
     #把基态解出来
     eigvals, eigvecs = numpy.linalg.eigh(mat)
