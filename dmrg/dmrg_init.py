@@ -43,9 +43,8 @@ def init_first_site(
 
 
 def prepare_rightblockextend(
-        right: RightBlock,
-        phi_idx: int,
         conf: DMRGConfig,
+        phi_idx: int,
         newbonds: List[int],
         extoper_storage: List[int]
     ):
@@ -54,6 +53,7 @@ def prepare_rightblockextend(
     '''
     #这个过程不会更新conf中的right_tmp
     rightstorage = conf.get_rightblock_storage(phi_idx)
+    right = rightstorage.block
     rightham = rightstorage.hamiltonian
     #扩展right
     rightext = extend_rightblock(right)

@@ -6,13 +6,12 @@ import numpy
 from dmrghelpers.superblockhelper import extend_merge_to_superblock
 from dmrghelpers.superblockhelper import leftext_hamiltonian_to_superblock
 from dmrghelpers.superblockhelper import rightext_hamiltonian_to_superblock
-from dmrghelpers.superblockhelper import leftext_oper_to_superblock
-from dmrghelpers.superblockhelper import rightext_oper_to_superblock
 from dmrghelpers.hamhelper import plus_two_hamiltonian
-from .storages import BlockStorage, DMRGConfig
+from lattice import BaseModel
+from .storages import BlockStorage
 
 def get_superblock_ham(
-        conf: DMRGConfig,
+        model: BaseModel,
         leftstorage: BlockStorage,
         rightstorage: BlockStorage,
         spin_sector,
@@ -59,7 +58,7 @@ def get_superblock_ham(
         #把这个新的hopping项加进去
         #Issue #16: 现在不需要扩展到superblock上的算符
         #只需要在ext上面的算符，op_dict以后也没有用了
-        coef_t = conf.model.get_t_coef(op1_idx, op2_idx)
+        coef_t = model.get_t_coef(op1_idx, op2_idx)
         superham.superblock_add_hopping_term(op1up, op2up, coef_t)
         superham.superblock_add_hopping_term(op1down, op2down, coef_t)
     #找到符合sector的所有idx

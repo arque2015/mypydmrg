@@ -17,34 +17,34 @@ from .storages import DMRGConfig
 #    from storages import DMRGConfig
 
 def leftblock_to_next(
-        left: LeftBlock,
-        phi_idx: int,
         conf: DMRGConfig,
+        phi_idx: int,
         newbonds: List[int],
         extoper_storage: List[int],
         tmpoper_storage: List[int]
     ):
     '''将leftblock向前推进一个格子\n
     left是需要推进的block\n
-    phi_idx是这个left的idx，这个和block_len不一定是一个东西\n
+    phi_idx是新的left的idx，这个和block_len不一定是一个东西\n
     conf是程序运行时的句柄\n
     newbonds是新加的这个site和哪些site有bond（新的site是left.fock_basis.site[-1]+1）\n
-    extoper_storage是指|phi^phi_idx, s^phi_idx+1>这个基上有哪些算符需要保存\n
+    extoper_storage是指|phi^phi_idx-1, s^phi_idx>这个基上有哪些算符需要保存\n
     村下来的extoper以后要用到superblock上。\n
-    tmpoper_storage是指在|phi^phi_idx+1>这个基上要临时存储的算符，用在下一次递推\n
+    tmpoper_storage是指在|phi^phi_idx>这个基上要临时存储的算符，用在下一次递推\n
     时的哈密顿量计算，以及下一次的迭代中需要保存的ext\n
     '''
-    leftstorage = conf.get_leftblock_storage(phi_idx)
+    leftstorage = conf.get_leftblock_storage(phi_idx-1)
+    left = leftstorage.block
     hamleft = leftstorage.hamiltonian
     ### 开始处理leftext在leftext上面工作的内容
     #把left扩展一个格子
     leftext = extend_leftblock(left)
-    #给leftext进行初始化，leftext[phi_idx]中存的就是leftblock[phi_idx]的extend
-    conf.leftext_reset(phi_idx, leftext)
+    #给leftext进行初始化，leftext[phi_idx-1]中存的就是leftblock[phi_idx-1]的extend
+    conf.leftext_reset(phi_idx-1, leftext)
     #把哈密顿量扩展一个格子
     hamleft = extend_leftblock_hamiltonian(hamleft, leftext)
     #把扩展基上的哈密顿量存下来
-    conf.storage_leftext_ham(phi_idx, hamleft)
+    conf.storage_leftext_ham(phi_idx-1, hamleft)
     #存储需要进行扩展的算符
     maintain_opers = {}
     #创建新的格子上厄的两个算符并且扩展
@@ -68,8 +68,8 @@ def leftblock_to_next(
         maintain_opers[stidx] = (stup, stdown)
     #把需要保存到leftext中的算符保存下来
     for stidx in extoper_storage:
-        conf.storage_leftext_oper(phi_idx, maintain_opers[stidx][0])
-        conf.storage_leftext_oper(phi_idx, maintain_opers[stidx][1])
+        conf.storage_leftext_oper(phi_idx-1, maintain_opers[stidx][0])
+        conf.storage_leftext_oper(phi_idx-1, maintain_opers[stidx][1])
     #找到构成bond的算符，把新的hopping添加到哈密顿量
     for bstidx in newbonds:
         coef_t = conf.model.get_t_coef(bstidx, newup.siteidx)
@@ -91,8 +91,8 @@ def leftblock_to_next(
     newleft = update_to_leftblock(leftext, phival)
     #给哈密顿量进行更新
     hamleft = update_leftblockextend_hamiltonian(newleft, hamleft, phival)
-    #给conf中的left_tmp重置，现在left_tmp应该保存phi_idx+1的哈密顿量和算符了
-    conf.left_tmp_reset(phi_idx+1, newleft, hamleft)
+    #给conf中的left_tmp重置，现在left_tmp应该保存phi_idx的哈密顿量和算符了
+    conf.left_tmp_reset(phi_idx, newleft, hamleft)
     #给下一次运算需要保存的算符更新
     for stidx in tmpoper_storage:
         up_ext, down_ext = maintain_opers[stidx]
