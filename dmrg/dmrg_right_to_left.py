@@ -39,7 +39,7 @@ def rightblockextend_to_next(
     #scrtor_idxs中保存的是满足粒子数要求的所有superblock上的基的idx
     #mat是这个sector上的矩阵
     sector_idxs, mat = get_superblock_ham(
-        conf, leftstorage, rightstorage, spin_sector, extrabonds
+        conf.model, leftstorage, rightstorage, spin_sector, extrabonds
     )
     #将基态解出来
     eigvals, eigvecs = numpy.linalg.eigh(mat)
