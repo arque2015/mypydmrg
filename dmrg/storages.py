@@ -25,6 +25,12 @@ class DMRGConfig(object):
         #（右边是|s^idx-1, phi^(N-idx+1)>）
         self._leftext_storage = {}
         self._rightext_storage = {}
+        #用来保存计算过程中生成的基态
+        self.ground_vec = [None]
+        #这个用来声明基态在哪两个ext组成的superblock上
+        self.ground_basis_pair = (-1, -1)
+        #用来声明基态在superblock上面是哪些idx
+        self.ground_secidx = [None]
 
     @property
     def model(self):
@@ -116,12 +122,12 @@ class DMRGConfig(object):
             template += 'left_tmp: ' + str(self._left_tmp)
         if self._right_tmp is not None:
             template += 'right_tmp: ' + str(self._right_tmp)
-        for idx in range(self._model.size):
+        for idx in range(self._model.size+1):
             if idx in self._leftext_storage:
                 template += 'leftext %d: \n' % idx
                 template += str(self._leftext_storage[idx])
             if idx in self._rightext_storage:
-                template += 'leftext %d: \n' % idx
+                template += 'rightext %d: \n' % idx
                 template += str(self._rightext_storage[idx])
         return template
 
@@ -136,6 +142,8 @@ class BlockStorage(object):
         self._ham = None
         self._oper_storage = []
         self._opers = {}
+        #观测
+        self._meass = {}
 
     @property
     def block(self):
@@ -192,6 +200,18 @@ class BlockStorage(object):
         '''存储对应的哈密顿量'''
         self._ham = ham
 
+    def storage_meas(self, prefix, meas: BaseOperator):
+        '''存储一个观测'''
+        key = '%s,%d' % (prefix, meas.siteidx)
+        #不应该有重复的
+        if key in self._meass:
+            raise ValueError('已经存在了%s' % key)
+        self._meass[key] = meas
+
+    def get_meas(self, prefix, siteidx):
+        '''得到一个观测'''
+        key = '%s,%d' % (prefix, siteidx)
+        return self._meass[key]
 
     def __str__(self):
         template = 'Storage: phi^%d\n' % self._phi_idx
@@ -203,4 +223,8 @@ class BlockStorage(object):
         for key in self._opers:
             template += key
             template += ' %s\n' % str(self._opers[key].basis.__class__.__name__)
+        template += 'meass: \n'
+        for key in self._meass:
+            template += key
+            template += ' %s\n' % str(self._meass[key].basis)
         return template

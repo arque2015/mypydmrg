@@ -38,6 +38,15 @@ SINGLE_SITE_INTERACT_U = numpy.array(
     ]
 )
 
+SINGLE_SITE_SPIN_Z = numpy.array(
+    [
+        [0., 0., 0., 0.],
+        [0., 1., 0., 0.],
+        [0., 0., -1., 0.],
+        [0., 0., 0., 0.]
+    ]
+) 
+
 #SINGLE_SITE_NUMBER_SPINUP = numpy.array(
 #    [
 #        [0., 0., 0., 0.],
@@ -77,6 +86,14 @@ class OperFactory(object):
             mat=SINGLE_SITE_INTERACT_U
         )
 
+    @staticmethod
+    def create_sz():
+        '''创建一个Sz算符'''
+        return OPERTUP(
+            isferm=False,
+            spin=0,
+            mat=SINGLE_SITE_SPIN_Z
+        )
     #@staticmethod
     #def number_spinup():
     #    '''自旋向上的粒子数量'''
@@ -153,37 +170,6 @@ def leftsite_extend_oper(
                 eye * oper.mat[lidx, ridx]
     return BaseOperator(oper.siteidx, leftext, oper.isferm, mat, spin=oper.spin)
 
-def leftsite_extend_oper_(
-        leftext: LeftBlockExtend,
-        oper: BaseOperator
-    ):
-    '''将LeftBlockExtend.stbss上面的算符扩展到LeftBlockExtend上
-    这里利用的是21.15左右的公式，加上了反对易
-    '''
-    opdim = oper.basis.dim
-    if leftext.stbss.dim != opdim:
-        raise ValueError('oper.basis.dim和LeftBlockExtend.stbss.dim对应不上')
-    #需要处理反对易的符号
-    #|A_1,A_2,..A_n> = C_1C_2..C_n|0>
-    #C_n|A_1,A_2..> = C_nC_1C_2..|0> = (-1)^a C_1C_2..C_n|0>
-    #其中a的数量是phi^n-1中的粒子数，因为phi^n-1是和粒子数的共同本征态
-    mat = numpy.zeros([leftext.dim, leftext.dim])
-    for ridx in leftext.iter_idx():
-        for lidx in leftext.iter_idx():
-            rbkid, rstid = leftext.idx_to_idxpair(ridx)
-            lbkid, lstid = leftext.idx_to_idxpair(lidx)
-            #这个时候leftblock是单位算符，只有lbkid == rbkid时才有数值
-            if lbkid != rbkid:
-                continue
-            #计算block中一共有多少粒子
-            _partnum = numpy.sum(leftext.lblk.spin_nums[rbkid])
-            if oper.isferm:
-                _sign = 1. if _partnum % 2 == 0 else -1.
-                mat[lidx, ridx] = _sign * oper.mat[lstid, rstid]
-            else:
-                mat[lidx, ridx] = oper.mat[lstid, rstid]
-    return BaseOperator(oper.siteidx, leftext, oper.isferm, mat, spin=oper.spin)
-
 
 def update_leftblockextend_oper(
         newlbk: LeftBlock,
@@ -232,39 +218,6 @@ def rightblock_extend_oper(
         for lidx in rightext.rblk.iter_idx():
             mat[lidx*eyedim:(lidx+1)*eyedim, ridx*eyedim:(ridx+1)*eyedim] =\
                 eye * oper.mat[lidx, ridx]
-    return BaseOperator(oper.siteidx, rightext, oper.isferm, mat, spin=oper.spin)
-
-
-def rightblock_extend_oper_(
-        rightext: RightBlockExtend,
-        oper: BaseOperator
-    ):
-    '''把rightblock.rblk下的算符扩展到
-    rightblockextend上面
-    '''
-    opdim = oper.basis.dim
-    if rightext.rblk.dim != opdim:
-        raise ValueError('oper.basis.dim和RightBlockExtend.rblk.dim对应不上')
-    #需要处理反对易的符号
-    #|A_1,A_2,..A_n> = C_1C_2..C_n|0>
-    #在Cm|phi^n_beta> = |phi^n_beta'>的情况下
-    #Cm|s^n-1,phi^n_beta> = -C^n-1Cm|0, phi^n_beta>
-    #所以在扩展rightblock中的算符的时候，要看n-1上面有几个粒子
-    mat = numpy.zeros([rightext.dim, rightext.dim])
-    for ridx in rightext.iter_idx():
-        for lidx in rightext.iter_idx():
-            rstid, rbkid = rightext.idx_to_idxpair(ridx)
-            lstid, lbkid = rightext.idx_to_idxpair(lidx)
-            #这个时候rightsite是单位算符，只有lstid == rstid时才有数值
-            if lstid != rstid:
-                continue
-            #计算site中一共有多少粒子
-            _partnum = numpy.sum(rightext.stbss.partinum[rstid])
-            if oper.isferm:
-                _sign = 1. if _partnum % 2 == 0 else -1.
-                mat[lidx, ridx] = _sign * oper.mat[lbkid, rbkid]
-            else:
-                mat[lidx, ridx] = oper.mat[lbkid, rbkid]
     return BaseOperator(oper.siteidx, rightext, oper.isferm, mat, spin=oper.spin)
 
 

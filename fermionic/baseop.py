@@ -21,6 +21,9 @@ class BaseOperator(Operator):
         self._spin = spin
         self._isferm = isferm
         self._mat = val
+        shape = numpy.shape(val)
+        self._ldim = shape[0]
+        self._rdim = shape[1]
 
     @property
     def mat(self):
@@ -70,6 +73,8 @@ class Hamiltonian(Operator):
         ):
         super().__init__()
         self._basis = basis
+        self._ldim = basis.dim
+        self._rdim = basis.dim
         self._mat = mat
 
     @property
@@ -208,3 +213,21 @@ class Hamiltonian(Operator):
             for newidx2, idx2 in enumerate(idxs, 0):
                 mat[newidx1, newidx2] = self._mat[idx1, idx2]
         return mat
+
+
+class Correlation(Operator):
+    """两个算符的关联\n
+    """
+    def __init__(self, op1pre, op1idx, op2pre, op2idx):
+        self._op1pre = op1pre
+        self._op2pre = op2pre
+        self._op1idx = op1idx
+        self._op2idx = op2idx
+        self._mat = None
+        self._ldim = None
+        self._rdim = None
+        self._basis = None
+
+    def set_val(self, basis, mat):
+        '''TODO: 设置算符的数值'''
+

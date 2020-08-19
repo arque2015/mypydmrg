@@ -3,13 +3,14 @@
 和dmrg_right_to_left差不多
 """
 
-from typing import List
+from typing import List, Tuple
 import numpy
 from dmrghelpers.blockhelper import update_to_leftblock, extend_leftblock
 from dmrghelpers.hamhelper import update_leftblockextend_hamiltonian, extend_leftblock_hamiltonian
 from dmrghelpers.operhelper import update_leftblockextend_oper
 from dmrghelpers.operhelper import leftblock_extend_oper, leftsite_extend_oper
 from dmrghelpers.operhelper import create_operator_of_site, OperFactory
+from dmrghelpers.meashelper import create_meas_operator_of_site
 from .dmrg_iter import get_superblock_ham, get_density_root
 from .dmrg_iter import get_density_in_sector, get_phival_from_density_sector
 from .storages import DMRGConfig
@@ -21,6 +22,7 @@ def leftblockextend_to_next(
         extrabonds: List[int],
         newbonds: List[int],
         extoper_storage: List[int],
+        measure_storage: List[Tuple[str, int]],
         spin_sector,
         maxkeep: int
     ):
@@ -38,6 +40,10 @@ def leftblockextend_to_next(
     eigvals, eigvecs = numpy.linalg.eigh(mat)
     ground = eigvecs[:, 0]
     ground_erg = eigvals[0]
+    #把基态的信息保留下来
+    conf.ground_vec = ground
+    conf.ground_basis_pair = (phi_idx-1, phi_idx+2)
+    conf.ground_secidx = sector_idxs
     #构造密度矩阵
     lidxs, ridxs, mat = get_density_root(#pylint: disable=unused-variable
         leftstorage,
@@ -89,6 +95,23 @@ def leftblockextend_to_next(
     newleftext = extend_leftblock(newleftblk)
     #把哈密顿量也扩展
     newhamext = extend_leftblock_hamiltonian(newham, newleftext)
+    #以后的观测需要的算符，从leftext[phi_idx-1]中拿到，再升级扩展
+    #以后放到leftext[phi_idx]中
+    ext_meaops = {}
+    for prefix, stidx in measure_storage:
+        if stidx == phi_idx + 1:#如果是新加的格子上的算符，不需要升级
+            #新建一个观测用的算符
+            meaop = create_meas_operator_of_site(newleftext.stbss, prefix)
+            #扩展到leftext[phi_idx]上
+            meaop = leftsite_extend_oper(newleftext, meaop)
+        else:
+            #得到meaop
+            meaop = leftstorage.get_meas(prefix, stidx)
+            #升级meaop到leftblock[phi_idx]
+            meaop = update_leftblockextend_oper(newleftblk, meaop, phival)
+            #扩展
+            meaop = leftblock_extend_oper(newleftext, meaop)
+        ext_meaops['%s,%d' % (prefix, stidx)] = meaop
     #把现在的缓存进去
     conf.leftext_reset(phi_idx, newleftext)
     conf.storage_leftext_ham(phi_idx, newhamext)
@@ -118,5 +141,9 @@ def leftblockextend_to_next(
     for extidx in extoper_storage:
         conf.storage_leftext_oper(phi_idx, maintain_dict[extidx][0])
         conf.storage_leftext_oper(phi_idx, maintain_dict[extidx][1])
-    #
+    #把需要保存的观测用的算符保存到leftext[phi_idx]当中
+    leftstor_phiidx = conf.get_leftext_storage(phi_idx)
+    for prefix, stidx in measure_storage:
+        meaop = ext_meaops['%s,%d' % (prefix, stidx)]
+        leftstor_phiidx.storage_meas(prefix, meaop)
     return ground_erg

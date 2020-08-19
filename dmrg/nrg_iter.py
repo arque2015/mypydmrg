@@ -2,7 +2,7 @@
 和NRG算法的Phi有关的函数
 """
 
-from typing import List
+from typing import List, Tuple
 import numpy
 from fermionic.baseop import Hamiltonian
 from fermionic.block import LeftBlockExtend, LeftBlock
@@ -11,6 +11,7 @@ from dmrghelpers.hamhelper import extend_leftblock_hamiltonian, update_leftblock
 from dmrghelpers.operhelper import leftblock_extend_oper, leftsite_extend_oper
 from dmrghelpers.operhelper import OperFactory, create_operator_of_site
 from dmrghelpers.operhelper import update_leftblockextend_oper
+from dmrghelpers.meashelper import create_meas_operator_of_site
 #try:
 from .storages import DMRGConfig
 #except ImportError:
@@ -21,7 +22,8 @@ def leftblock_to_next(
         phi_idx: int,
         newbonds: List[int],
         extoper_storage: List[int],
-        tmpoper_storage: List[int]
+        tmpoper_storage: List[int],
+        measuer_storage: List[Tuple[str, int]]
     ):
     '''将leftblock向前推进一个格子\n
     left是需要推进的block\n
@@ -32,6 +34,9 @@ def leftblock_to_next(
     村下来的extoper以后要用到superblock上。\n
     tmpoper_storage是指在|phi^phi_idx>这个基上要临时存储的算符，用在下一次递推\n
     时的哈密顿量计算，以及下一次的迭代中需要保存的ext\n
+    measure_storage是指以后dmrg需要观测的过程中要计算的算符，需要保存到leftstorage中\n
+    leftext[phi_idx-1]上面的观测算符也需要保存，由于leftext[phi_idx-1]和\n
+    leftblock[phi_idx]实际上是一个block_len这里用一个参数指定就可以了\n
     '''
     leftstorage = conf.get_leftblock_storage(phi_idx-1)
     left = leftstorage.block
@@ -91,6 +96,17 @@ def leftblock_to_next(
     newleft = update_to_leftblock(leftext, phival)
     #给哈密顿量进行更新
     hamleft = update_leftblockextend_hamiltonian(newleft, hamleft, phival)
+    #把tmp中保存的leftblock[phi_idx-1]的观测算符取出来，并扩展到
+    #leftext[phi_idx-1]
+    ext_measops = {}
+    for meas in measuer_storage:
+        if meas[1] == phi_idx:#如果是这次新加的格子，就创建一个而不是读取
+            meaop = create_meas_operator_of_site(leftext.stbss, meas[0])
+            meaop = leftsite_extend_oper(leftext, meaop)
+        else:
+            meaop = leftstorage.get_meas(meas[0], meas[1])
+            meaop = leftblock_extend_oper(leftext, meaop)
+        ext_measops['%s,%d' % meas] = meaop
     #给conf中的left_tmp重置，现在left_tmp应该保存phi_idx的哈密顿量和算符了
     conf.left_tmp_reset(phi_idx, newleft, hamleft)
     #给下一次运算需要保存的算符更新
@@ -100,6 +116,18 @@ def leftblock_to_next(
         down_upd = update_leftblockextend_oper(newleft, down_ext, phival)
         conf.left_tmp_add_oper(up_upd)
         conf.left_tmp_add_oper(down_upd)
+    #给以后需要观测的算符进行保存
+    leftext_stor = conf.get_leftext_storage(phi_idx-1)
+    leftstorage = conf.get_leftblock_storage(phi_idx)
+    for prefix, stidx in measuer_storage:
+        #如果这个site是之前的block上面的，已经扩展到了leftext[phi_idx-1]
+        #保存到leftext[phi_idx-1]
+        #升级到leftblock[phi_idx]，存到left_tmp
+        meaop = ext_measops['%s,%d' % (prefix, stidx)]
+        leftext_stor.storage_meas(prefix, meaop)
+        #升级
+        meaop = update_leftblockextend_oper(newleft, meaop, phival)
+        leftstorage.storage_meas(prefix, meaop)
     return newleft
 
 
