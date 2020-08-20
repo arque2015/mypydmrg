@@ -56,6 +56,10 @@ SINGLE_SITE_SPIN_Z = numpy.array(
 #    ]
 #)
 
+MEASOP_DICT = {
+    'sz': SINGLE_SITE_SPIN_Z
+}
+
 OPERTUP = namedtuple('opertup', ['isferm', 'spin', 'mat'])
 class OperFactory(object):
     '''算符的种类'''
@@ -87,12 +91,12 @@ class OperFactory(object):
         )
 
     @staticmethod
-    def create_sz():
-        '''创建一个Sz算符'''
+    def create_measure(prefix):
+        '''创建一个观测用的算符'''
         return OPERTUP(
             isferm=False,
             spin=0,
-            mat=SINGLE_SITE_SPIN_Z
+            mat=MEASOP_DICT[prefix]
         )
     #@staticmethod
     #def number_spinup():

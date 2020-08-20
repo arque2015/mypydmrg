@@ -10,8 +10,7 @@ from dmrg.dmrg_init import init_first_site, prepare_rightblockextend
 from dmrg.nrg_iter import leftblock_to_next
 from dmrg.dmrg_right_to_left import rightblockextend_to_next
 from dmrg.dmrg_left_to_right import leftblockextend_to_next
-from dmrghelpers.superblockhelper import leftext_oper_to_superblock,\
-    rightext_oper_to_superblock, extend_merge_to_superblock
+from dmrg.dmrg_measure import measure_oper_of_site, measure_corr_of_2sites
 
 def standard_dmrg(
         model: BaseModel,
@@ -197,46 +196,15 @@ def standard_dmrg(
         #print(dconf)
     #整个sweep结束以后的一些工作
     #算一下几个位置的关联函数
-    leftstorage = dconf.get_leftext_storage(
-        dconf.ground_basis_pair[0]
-    )
-    rightstorage = dconf.get_rightext_storage(
-        dconf.ground_basis_pair[1]
-    )
-    sbext = extend_merge_to_superblock(leftstorage.block, rightstorage.block)
-    ground_vec = dconf.ground_vec#numpy.zeros(sbext.dim)
-    #for idx, sec in enumerate(dconf.ground_secidx, 0):
-    #    ground_vec[sec] = dconf.ground_vec[idx]
-    #print(dconf.ground_basis_pair)
     for idx in range(1, model.size+1):
         #leftext最大的格子在phi_idx+1
         #注意这里有一个问题，最后一个superblock是由3-4-5-6构成的
         #但是并没有求出这个时候的基态，因为不需要更新leftblock[4]这个基
         #也就是说最后一次是在leftext[2]上计算的，
         #用来升级成leftblock[3]并自动扩展成leftext[3]
-        if idx < dconf.ground_basis_pair[0]+2:
-            measoper = leftstorage.get_meas('sz', idx)
-            measoper = leftext_oper_to_superblock(sbext, measoper)
-            measmat = measoper.get_block(dconf.ground_secidx)
-            val = numpy.matmul(ground_vec, numpy.matmul(measmat, ground_vec))
-            print('Sz_%d' % idx, val)
-            #leftext_oper_to_superblock()
-        else:
-            measoper = rightstorage.get_meas('sz', idx)
-            measoper = rightext_oper_to_superblock(sbext, measoper)
-            measmat = measoper.get_block(dconf.ground_secidx)
-            val = numpy.matmul(ground_vec, numpy.matmul(measmat, ground_vec))
-            print('Sz_%d' % idx, val)
+        val = measure_oper_of_site(dconf, 'sz', idx)
+        print('Sz_%d' % idx, val)
         #关联
         for idx2 in range(1, model.size+1):
-            if idx2 < dconf.ground_basis_pair[0]+2:
-                measoper2 = leftstorage.get_meas('sz', idx2)
-                measoper2 = leftext_oper_to_superblock(sbext, measoper2)
-            else:
-                measoper2 = rightstorage.get_meas('sz', idx2)
-                measoper2 = rightext_oper_to_superblock(sbext, measoper2)
-            coropmat = numpy.matmul(measoper.mat, measoper2.mat)
-            coropmat = coropmat[dconf.ground_secidx]
-            coropmat = coropmat[:, dconf.ground_secidx]
-            val = numpy.matmul(ground_vec, numpy.matmul(coropmat, ground_vec))
+            val = measure_corr_of_2sites(dconf, 'sz', idx, idx2)
             print('Sz_%dSz_%d' % (idx, idx2), val)

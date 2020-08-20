@@ -97,4 +97,4 @@ if __name__ == "__main__":
 
 + [DMRG迭代](https://github.com/maryprimary/mypydmrg/wiki/dmrg_sweep)
 
-+ [迭代是基的升级](https://github.com/maryprimary/mypydmrg/wiki/get_phival)
++ [迭代时基的升级](https://github.com/maryprimary/mypydmrg/wiki/get_phival)

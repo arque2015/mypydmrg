@@ -74,7 +74,7 @@ def get_superblock_ham(
     #
     #print('len', len(sector_idxs))
     mat = superham.get_block(sector_idxs)
-    return sector_idxs, mat
+    return sector_idxs, mat, superext
 
 
 def get_density_root(

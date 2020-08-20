@@ -11,7 +11,6 @@ from dmrghelpers.hamhelper import extend_leftblock_hamiltonian, update_leftblock
 from dmrghelpers.operhelper import leftblock_extend_oper, leftsite_extend_oper
 from dmrghelpers.operhelper import OperFactory, create_operator_of_site
 from dmrghelpers.operhelper import update_leftblockextend_oper
-from dmrghelpers.meashelper import create_meas_operator_of_site
 #try:
 from .storages import DMRGConfig
 #except ImportError:
@@ -101,7 +100,10 @@ def leftblock_to_next(
     ext_measops = {}
     for meas in measuer_storage:
         if meas[1] == phi_idx:#如果是这次新加的格子，就创建一个而不是读取
-            meaop = create_meas_operator_of_site(leftext.stbss, meas[0])
+            meaop = create_operator_of_site(
+                leftext.stbss,
+                OperFactory.create_measure(meas[0])
+            )
             meaop = leftsite_extend_oper(leftext, meaop)
         else:
             meaop = leftstorage.get_meas(meas[0], meas[1])

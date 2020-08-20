@@ -10,7 +10,6 @@ from dmrghelpers.hamhelper import create_hamiltonian_of_site
 from dmrghelpers.hamhelper import extend_rightblock_hamiltonian
 from dmrghelpers.operhelper import create_operator_of_site, OperFactory
 from dmrghelpers.operhelper import rightsite_extend_oper, rightblock_extend_oper
-from dmrghelpers.meashelper import create_meas_operator_of_site
 from .storages import DMRGConfig
 
 
@@ -58,7 +57,10 @@ def init_first_site(
             basis = right
         else:
             raise ValueError('这个算符不在第一个或最后一个格子')
-        measop = create_meas_operator_of_site(basis.fock_basis, prefix)
+        measop = create_operator_of_site(
+            basis.fock_basis,
+            OperFactory.create_measure(prefix)
+        )
         stor.storage_meas(prefix, measop)
     return conf
 
@@ -127,7 +129,10 @@ def prepare_rightblockextend(
     rightext_stor = conf.get_rightext_storage(phi_idx)
     for prefix, idx in measure_storage:
         if idx == phi_idx - 1:#如果是新加的格子，就新建这个算符
-            meaop = create_meas_operator_of_site(rightext.stbss, prefix)
+            meaop = create_operator_of_site(
+                rightext.stbss,
+                OperFactory.create_measure(prefix)
+            )
             meaop = rightsite_extend_oper(rightext, meaop)
         else:
             meaop = rightstorage.get_meas(prefix, idx)

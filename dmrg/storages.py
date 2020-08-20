@@ -28,9 +28,11 @@ class DMRGConfig(object):
         #用来保存计算过程中生成的基态
         self.ground_vec = [None]
         #这个用来声明基态在哪两个ext组成的superblock上
-        self.ground_basis_pair = (-1, -1)
+        #self.ground_basis_pair = (-1, -1)
         #用来声明基态在superblock上面是哪些idx
         self.ground_secidx = [None]
+        #用来声明基态所在的superblock
+        self.ground_superext = None
 
     @property
     def model(self):

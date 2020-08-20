@@ -15,7 +15,6 @@ from dmrghelpers.hamhelper import update_rightblockextend_hamiltonian
 from dmrghelpers.operhelper import rightsite_extend_oper, rightblock_extend_oper
 from dmrghelpers.operhelper import OperFactory, create_operator_of_site
 from dmrghelpers.operhelper import update_rightblockextend_oper
-from dmrghelpers.meashelper import create_meas_operator_of_site
 from .storages import DMRGConfig
 from .dmrg_iter import get_superblock_ham, get_density_root
 from .dmrg_iter import get_density_in_sector, get_phival_from_density_sector
@@ -40,7 +39,7 @@ def rightblockextend_to_next(
     rightstorage = conf.get_rightext_storage(phi_idx+1)
     #scrtor_idxs中保存的是满足粒子数要求的所有superblock上的基的idx
     #mat是这个sector上的矩阵
-    sector_idxs, mat = get_superblock_ham(
+    sector_idxs, mat, superext = get_superblock_ham(
         conf.model, leftstorage, rightstorage, spin_sector, extrabonds
     )
     #将基态解出来
@@ -49,8 +48,8 @@ def rightblockextend_to_next(
     ground_erg = eigvals[0]
     #把基态的信息保留下来
     conf.ground_vec = ground
-    conf.ground_basis_pair = (phi_idx-2, phi_idx+1)
     conf.ground_secidx = sector_idxs
+    conf.ground_superext = superext
     #print('g', ground_erg)
     #从基态构造密度矩阵
     #这里需要sector_idx来判断有哪些位置上是有数值的
@@ -111,7 +110,10 @@ def rightblockextend_to_next(
     for prefix, stidx in measure_storage:
         if stidx == phi_idx - 1:#如果是新加的格子上的算符，不需要升级
             #新建一个观测用的算符
-            meaop = create_meas_operator_of_site(newrightext.stbss, prefix)
+            meaop = create_operator_of_site(
+                newrightext.stbss,
+                OperFactory.create_measure(prefix)
+            )
             #扩展到leftext[phi_idx]上
             meaop = rightsite_extend_oper(newrightext, meaop)
         else:
