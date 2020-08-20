@@ -7,7 +7,7 @@
 """
 
 
-from typing import List
+from typing import List, Tuple
 import numpy
 from dmrghelpers.blockhelper import extend_rightblock, update_to_rightblock
 from dmrghelpers.hamhelper import extend_rightblock_hamiltonian
@@ -25,6 +25,7 @@ def rightblockextend_to_next(
         extrabonds: List[int],
         newbonds: List[int],
         extoper_storage: List[int],
+        measure_storage: List[Tuple[str, int]],
         spin_sector,
         maxkeep: int
     ):
@@ -38,13 +39,17 @@ def rightblockextend_to_next(
     rightstorage = conf.get_rightext_storage(phi_idx+1)
     #scrtor_idxs中保存的是满足粒子数要求的所有superblock上的基的idx
     #mat是这个sector上的矩阵
-    sector_idxs, mat = get_superblock_ham(
+    sector_idxs, mat, superext = get_superblock_ham(
         conf.model, leftstorage, rightstorage, spin_sector, extrabonds
     )
     #将基态解出来
     eigvals, eigvecs = numpy.linalg.eigh(mat)
     ground = eigvecs[:, 0]
     ground_erg = eigvals[0]
+    #把基态的信息保留下来
+    conf.ground_vec = ground
+    conf.ground_secidx = sector_idxs
+    conf.ground_superext = superext
     #print('g', ground_erg)
     #从基态构造密度矩阵
     #这里需要sector_idx来判断有哪些位置上是有数值的
@@ -99,6 +104,26 @@ def rightblockextend_to_next(
     newrightext = extend_rightblock(newrightblk)
     #把哈密顿量也扩展一个格子
     newhamext = extend_rightblock_hamiltonian(newham, newrightext)
+    #以后的观测需要的算符，从leftext[phi_idx-1]中拿到，再升级扩展
+    #以后放到leftext[phi_idx]中
+    ext_meaops = {}
+    for prefix, stidx in measure_storage:
+        if stidx == phi_idx - 1:#如果是新加的格子上的算符，不需要升级
+            #新建一个观测用的算符
+            meaop = create_operator_of_site(
+                newrightext.stbss,
+                OperFactory.create_measure(prefix)
+            )
+            #扩展到leftext[phi_idx]上
+            meaop = rightsite_extend_oper(newrightext, meaop)
+        else:
+            #得到meaop
+            meaop = rightstorage.get_meas(prefix, stidx)
+            #升级meaop到leftblock[phi_idx]
+            meaop = update_rightblockextend_oper(newrightblk, meaop, phival)
+            #扩展
+            meaop = rightblock_extend_oper(newrightext, meaop)
+        ext_meaops['%s,%d' % (prefix, stidx)] = meaop
     #更新缓存的ext，现在存进去就行了，后面在add_hopping_term
     #也是加在这个newhamext上面的
     conf.rightext_reset(phi_idx, newrightext)
@@ -130,5 +155,9 @@ def rightblockextend_to_next(
     for extidx in extoper_storage:
         conf.storage_rightext_oper(phi_idx, maintain_dict[extidx][0])
         conf.storage_rightext_oper(phi_idx, maintain_dict[extidx][1])
-    #返回观测
+    #把需要保存的观测用的算符保存到leftext[phi_idx]当中
+    rightstor_phiidx = conf.get_rightext_storage(phi_idx)
+    for prefix, stidx in measure_storage:
+        meaop = ext_meaops['%s,%d' % (prefix, stidx)]
+        rightstor_phiidx.storage_meas(prefix, meaop)
     return ground_erg

@@ -1,5 +1,8 @@
 """
 验证一维链上面的DMRG
+``````
+这个测试里面的功能都已经改变了，直接看examples里面\n
+这里面的功能被吸收到dmrg/中的代码了
 """
 
 #import numpy
@@ -35,13 +38,13 @@ def push_left(dconf: DMRGConfig, target_site):
                 break
     print(site_need_tmp)
     #leftext中需要存的算符可以用来算一些关联函数，暂时不用设置
-    leftblock_to_next(leftblock, target_site-1, dconf, newbonds, site_need_tmp, site_need_tmp)
+    leftblock_to_next(dconf, target_site, newbonds, site_need_tmp, site_need_tmp, [])
 
 
 def main():
     '''开始测试'''
     hc6 = HubbardChain(6, 1.0)
-    dconf = init_first_site(hc6, 15)
+    dconf = init_first_site(hc6, 15, [])
     print(dconf)
     for stidx in [2, 3, 4]:
         push_left(dconf, stidx)
@@ -65,7 +68,7 @@ def main():
                 break
     print('site_need_tmp ', site_need_tmp)
     right = dconf.get_rightblock_storage(6).block
-    rightext = prepare_rightblockextend(right, 6, dconf, newbonds, site_need_tmp)
+    rightext = prepare_rightblockextend(dconf, 6, newbonds, site_need_tmp, [])
     #print(rightext)
     #print(dconf._rightext_storage[6])
     #查看新的bond
@@ -88,7 +91,7 @@ def main():
     #包含小于4的bond的site都应该保存，包括ext5扩展到ext4的时候，需要3-4的bond
     #所以4也应该保存
     gerg = rightblockextend_to_next(
-        dconf, 5, extrabonds, newbonds, site_need_tmp, (3, 3), 15
+        dconf, 5, extrabonds, newbonds, site_need_tmp, [], (3, 3), 15
     )
     print(gerg)
     #print(dconf.get_rightext_storage(5))
@@ -110,7 +113,7 @@ def main():
                 break
     print(site_need_tmp)
     gerg = rightblockextend_to_next(
-        dconf, 4, extrabonds, newbonds, site_need_tmp, (3, 3), 20
+        dconf, 4, extrabonds, newbonds, site_need_tmp, [], (3, 3), 20
     )
     print(gerg)
     #print(dconf.get_rightext_storage(4))
@@ -132,7 +135,7 @@ def main():
                 break
     print(site_need_tmp)
     gerg = leftblockextend_to_next(
-        dconf, 2, extrabonds, newbonds, site_need_tmp, (3, 3), 15
+        dconf, 2, extrabonds, newbonds, site_need_tmp, [], (3, 3), 15
     )
     print(gerg)
     #extrabonds的时候还没有扩展
@@ -156,7 +159,7 @@ def main():
                 break
     print(site_need_tmp)
     gerg = leftblockextend_to_next(
-        dconf, 3, extrabonds, newbonds, site_need_tmp, (3, 3), 20
+        dconf, 3, extrabonds, newbonds, site_need_tmp, [], (3, 3), 20
     )
     print(gerg)
     #再从右向左
@@ -179,7 +182,7 @@ def main():
     #包含小于4的bond的site都应该保存，包括ext5扩展到ext4的时候，需要3-4的bond
     #所以4也应该保存
     gerg = rightblockextend_to_next(
-        dconf, 5, extrabonds, newbonds, site_need_tmp, (3, 3), 15
+        dconf, 5, extrabonds, newbonds, site_need_tmp, [], (3, 3), 15
     )
     print(gerg)
     #print(dconf.get_rightext_storage(5))
@@ -201,7 +204,7 @@ def main():
                 break
     print(site_need_tmp)
     gerg = rightblockextend_to_next(
-        dconf, 4, extrabonds, newbonds, site_need_tmp, (3, 3), 20
+        dconf, 4, extrabonds, newbonds, site_need_tmp, [], (3, 3), 20
     )
     print(gerg)
     #可以验证六个格子PBC半满基态能量-8.0，调节dconf中的maxkeep

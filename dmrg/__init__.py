@@ -4,17 +4,20 @@ Numerical Renormalization Group算法有关的功能
 """
 
 from typing import Tuple, List
+import numpy
 from lattice import BaseModel
 from dmrg.dmrg_init import init_first_site, prepare_rightblockextend
 from dmrg.nrg_iter import leftblock_to_next
 from dmrg.dmrg_right_to_left import rightblockextend_to_next
 from dmrg.dmrg_left_to_right import leftblockextend_to_next
+from dmrg.dmrg_measure import measure_oper_of_site, measure_corr_of_2sites
 
 def standard_dmrg(
         model: BaseModel,
         spin_sector: Tuple[int, int], 
         nrg_max_keep: int,
-        dmrg_max_keep: List[int]
+        dmrg_max_keep: List[int],
+        measures: List[Tuple[str, int]]
     ):
     """一个标准的流程\n
     spin_sector: 指定对角化的自旋粒子数，先上后下\n
@@ -26,11 +29,18 @@ def standard_dmrg(
     在每次更新一个格子的时候，都会把新的ext基上面的算符保留下来，\n
     leftext[model.size-3]和rightext[model.size]就可以构成一个superblock了\n
     每次推进一个格子的时候，新的ext基上的算符会保留，用来做下一次的计算\n
+    correlations之中是需要计算的关联，格式是算符名加格子编号，参看dmrghelpers/meashelper.py\n
     TODO: DMRG过程中的裁减率以后应该实现，按照数量裁减误差不容易控制
     """
+    #处理关联函数，将关联需要用到的算符拆出来
     #这个init_first_site创建DMRGConfig，同时把第一个格子和最后一个
     #格子的哈密顿量和算符存储到DMRGConfig中
-    dconf = init_first_site(model, nrg_max_keep)
+    #先找到两侧需要tmp的观测用的算符
+    meas_tmp = [corpair for corpair in measures\
+        if corpair[1] in [model.sites[0], model.sites[-1]]]
+    dconf = init_first_site(model, nrg_max_keep, meas_tmp)
+    #一共进行多少个sweep
+    sweep_num = 2
     #
     #开始warm up, nrg_iter是从一个leftblock到下一个leftblock
     #这个过程中，把leftblockext生成成功并且保存到DMRGConfig
@@ -56,13 +66,23 @@ def standard_dmrg(
                 if bnd > phi_idx:
                     site_need_tmp.append(stidx)
                     break
+        #在warm up的过程中，需要给每一个ext基上有的观测算符计算出来并且存储
+        #这个时候需要存储的就是现在可以存储的
+        #实际上现在只需要1，2两个格子的，因为这两个格子在dmrg sweep的
+        #过程中不会变，其他的可以在dmrg的过程中得到
+        if phi_idx == 2:
+            cors_tmp = [corpair for corpair in measures\
+                if corpair[1] in list(range(1, phi_idx+1))]
+        else:
+            cors_tmp = []
         #推进到下一个leftblock
         leftblock_to_next(
             dconf,
             phi_idx,
             newbonds,
             site_need_tmp,
-            site_need_tmp
+            site_need_tmp,
+            cors_tmp
         )
     #在warm up结束了以后，model size-3的leftext就有了，但是这个时候
     #还没有modesize上的rightext，先把这个位置的ext算出来
@@ -79,9 +99,16 @@ def standard_dmrg(
                 site_need_tmp.append(stidx)
                 break
     #准备第一个rightblockextend，这个过程把N上面的rightext保存下来
-    _ = prepare_rightblockextend(dconf, model.size, newbonds, site_need_tmp)
+    #这个时候需要准备后两个格子上的算符，用来给以后观测
+    cors_tmp = [corpair for corpair in measures\
+        if corpair[1] in list(range(model.size-1, model.size+1))]
+    _ = prepare_rightblockextend(
+        dconf, model.size,
+        newbonds, site_need_tmp,
+        cors_tmp
+    )
     #现在可以开始sweep了
-    for _ in range(2):#计算两个sweep
+    for sweep_idx in range(sweep_num):#计算两个sweep
         #开始right sweep
         #这个right sweep的时候，现在只有N上面的ext,从N-1的位置开始
         #推进ext，一直到4上的ext（4上的ext包含到第3个格子，range不包含最后一个）
@@ -108,10 +135,21 @@ def standard_dmrg(
                     if bnd < phi_idx-1:
                         site_need_tmp.append(stidx)
                         break
+            #右到左的时候，也需要做这个观测算符的存储，因为在N-3，N这个superblock
+            #上面没有算基态
+            if sweep_idx == sweep_num - 1\
+                and phi_idx == model.size-1:#最后一次左到右的sweep,只需要N-1时候的
+                #现在是从leftext[phi_idx-1]推进到leftext[phi_idx]
+                meas_ext = [corpair for corpair in measures\
+                    if corpair[1] in list(range(phi_idx-1, model.size+1))]
+            else:
+                meas_ext = []
             #从phi_idx+1推进到phi_idx
             gerg = rightblockextend_to_next(
-                dconf, phi_idx, extrabonds, newbonds,
-                site_need_tmp, spin_sector, dmrg_max_keep[iter_idx]
+                dconf, phi_idx,
+                extrabonds, newbonds,
+                site_need_tmp, meas_ext,
+                spin_sector, dmrg_max_keep[iter_idx]
             )
             print(gerg)
         #
@@ -139,10 +177,34 @@ def standard_dmrg(
                     if bnd > phi_idx+1:
                         site_need_tmp.append(stidx)
                         break
-            #
+            #这次sweep中，把所有以后观测需要用的算符计算出来
+            #这些算符都在leftext[N-3]上，加上一开始的rightext[N]上的
+            #算符，就可以进行观测了
+            if sweep_idx == sweep_num - 1:#最后一次左到右的sweep
+                #现在是从leftext[phi_idx-1]推进到leftext[phi_idx]
+                meas_ext = [corpair for corpair in measures\
+                    if corpair[1] in list(range(1, phi_idx+2))]
+            else:
+                meas_ext = []
             gerg = leftblockextend_to_next(
                 dconf, phi_idx, extrabonds, newbonds,
-                site_need_tmp, spin_sector, dmrg_max_keep[iter_idx]
+                site_need_tmp, meas_ext,
+                spin_sector, dmrg_max_keep[iter_idx]
             )
             print(gerg)
-
+        #print('sweep idx: ', sweep_idx)
+        #print(dconf)
+    #整个sweep结束以后的一些工作
+    #算一下几个位置的关联函数
+    for idx in range(1, model.size+1):
+        #leftext最大的格子在phi_idx+1
+        #注意这里有一个问题，最后一个superblock是由3-4-5-6构成的
+        #但是并没有求出这个时候的基态，因为不需要更新leftblock[4]这个基
+        #也就是说最后一次是在leftext[2]上计算的，
+        #用来升级成leftblock[3]并自动扩展成leftext[3]
+        val = measure_oper_of_site(dconf, 'sz', idx)
+        print('Sz_%d' % idx, val)
+        #关联
+        for idx2 in range(1, model.size+1):
+            val = measure_corr_of_2sites(dconf, 'sz', idx, idx2)
+            print('Sz_%dSz_%d' % (idx, idx2), val)
