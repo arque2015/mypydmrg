@@ -1,5 +1,7 @@
 """
 测试一维链的功能
+``````
+可以直接看examples里面的代码\n
 """
 
 import numpy
@@ -12,7 +14,7 @@ from dmrghelpers.operhelper import OperFactory, create_operator_of_site
 
 def test1():
     '''测试一维链上面的NRG，DMRG'''
-    hc6 = HubbardChain(6, 1.0)
+    hc6 = HubbardChain(6, 0.0)
     #print(hc6)
     dconf = DMRGConfig(hc6, 1000)
     #
@@ -40,7 +42,7 @@ def test1():
                 site_need_tmp.append(site)
                 break
     print(site_need_tmp)
-    left2 = leftblock_to_next(left1, 1, dconf, newbonds, [], site_need_tmp)
+    left2 = leftblock_to_next(dconf, 2, newbonds, [], site_need_tmp, [])
     print(dconf)
     #继续向下一个格子
     allbonds = hc6.get_site_bonds(3)
@@ -91,7 +93,7 @@ def test1():
     #        print(cu2.mat[lidx, ridx])
     #        print(cd2.mat[lidx, ridx])
     #
-    left3 = leftblock_to_next(left2, 2, dconf, newbonds, [], site_need_tmp)
+    left3 = leftblock_to_next(dconf, 3, newbonds, [], site_need_tmp, [])
     #继续向下一个格子
     allbonds = hc6.get_site_bonds(4)
     newbonds = [bond for bond in allbonds if bond < 4]
@@ -105,7 +107,7 @@ def test1():
                 site_need_tmp.append(site)
                 break
     print(site_need_tmp)
-    left4 = leftblock_to_next(left3, 3, dconf, newbonds, [], site_need_tmp)
+    left4 = leftblock_to_next(dconf, 4, newbonds, [], site_need_tmp, [])
     print(left4)
     lst4 = dconf.get_leftblock_storage(4)
     ham4 = lst4.hamiltonian

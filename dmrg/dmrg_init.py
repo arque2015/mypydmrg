@@ -1,7 +1,7 @@
 """dmrg的初始化有关的功能"""
 
 
-from typing import List
+from typing import List, Tuple
 from lattice import BaseModel
 from fermionic.block import RightBlock
 from dmrghelpers.blockhelper import first_leftblock, first_rightblock
@@ -16,8 +16,14 @@ from .storages import DMRGConfig
 def init_first_site(
         model: BaseModel,
         nrg_maxkeep: int,
+        meass: List[Tuple[str, int]]
     ):
-    '''初始化第一个site'''
+    '''初始化第一个site\n
+    这个时候只有1和N上面的block，创建这两个block上面的升降算符\n
+    还有以后观测要用的算符。
+    meass中应该是[(1, 'sz'), (N, 'sz')](N是最后一个格子的编号)\n
+    这样的内容
+    '''
     conf = DMRGConfig(model, nrg_maxkeep)
     #
     left = first_leftblock(model.sites[0])
@@ -39,6 +45,23 @@ def init_first_site(
     conf.right_tmp_reset(model.sites[-1], right, hamright)
     conf.right_tmp_add_oper(cuplast)
     conf.right_tmp_add_oper(cdnlast)
+    #把block上面的算符存储到tmp里，以后需要的是ext上面的算符
+    leftstor = conf.get_leftblock_storage(model.sites[0])
+    rightstor = conf.get_rightblock_storage(model.sites[-1])
+    for prefix, idx in meass:
+        if idx == model.sites[0]:
+            stor = leftstor
+            basis = left
+        elif idx == model.sites[-1]:
+            stor = rightstor
+            basis = right
+        else:
+            raise ValueError('这个算符不在第一个或最后一个格子')
+        measop = create_operator_of_site(
+            basis.fock_basis,
+            OperFactory.create_measure(prefix)
+        )
+        stor.storage_meas(prefix, measop)
     return conf
 
 
@@ -46,7 +69,8 @@ def prepare_rightblockextend(
         conf: DMRGConfig,
         phi_idx: int,
         newbonds: List[int],
-        extoper_storage: List[int]
+        extoper_storage: List[int],
+        measure_storage: List[Tuple[str, int]]
     ):
     '''把最右边的一个格子的扩展计算出来，这个扩展要包括新增的hopping\n
     以后要用来构成superblock
@@ -100,4 +124,18 @@ def prepare_rightblockextend(
     newu = create_operator_of_site(rightext.stbss, OperFactory.create_u())
     newu = rightsite_extend_oper(rightext, newu)
     rightham.add_u_term(newu, conf.model.coef_u)
+    #把扩展后的算符存储到rightext[N]上面，用来给以后的观测使用
+    #之前的过程并没有调整right_tmp，直接用就可以了
+    rightext_stor = conf.get_rightext_storage(phi_idx)
+    for prefix, idx in measure_storage:
+        if idx == phi_idx - 1:#如果是新加的格子，就新建这个算符
+            meaop = create_operator_of_site(
+                rightext.stbss,
+                OperFactory.create_measure(prefix)
+            )
+            meaop = rightsite_extend_oper(rightext, meaop)
+        else:
+            meaop = rightstorage.get_meas(prefix, idx)
+            meaop = rightblock_extend_oper(rightext, meaop)
+        rightext_stor.storage_meas(prefix, meaop)
     return rightext

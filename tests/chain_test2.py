@@ -1,5 +1,7 @@
 """
 验证一维链上面的DMRG
+``````
+可以直接看examples里面的代码\n
 """
 
 import numpy
@@ -33,13 +35,13 @@ def push_left(dconf: DMRGConfig, target_site):
                 break
     print(site_need_tmp)
     #leftext中需要存的算符可以用来算一些关联函数，暂时不用设置
-    leftblock_to_next(leftblock, target_site-1, dconf, newbonds, site_need_tmp, site_need_tmp)
+    leftblock_to_next(dconf, target_site, newbonds, site_need_tmp, site_need_tmp, [])
 
 
 def main():
     '''开始测试'''
     hc6 = HubbardChain(6, 2.0)
-    dconf = init_first_site(hc6, 100)
+    dconf = init_first_site(hc6, 100, [])
     print(dconf)
     for stidx in [2, 3, 4]:
         push_left(dconf, stidx)
@@ -60,7 +62,7 @@ def main():
                 break
     print('site_need_tmp ', site_need_tmp)
     right = dconf.get_rightblock_storage(6).block
-    rightext = prepare_rightblockextend(right, 6, dconf, newbonds, site_need_tmp)
+    rightext = prepare_rightblockextend(dconf, 6, newbonds, site_need_tmp, [])
     print(rightext)
     #print(dconf._rightext_storage[6])
     #查看新的bond
@@ -74,9 +76,10 @@ def main():
     print(extrabonds)
     #print(dconf._leftext_storage[3])
     #print(dconf._rightext_storage[6])
-    _, mat = get_superblock_ham(
-        dconf._leftext_storage[3],
-        dconf._rightext_storage[6],
+    _, mat, superext = get_superblock_ham(
+        dconf.model,
+        dconf.get_leftext_storage(3),
+        dconf.get_rightext_storage(6),
         (3, 3), extrabonds
     )
     eigvals = numpy.linalg.eigvalsh(mat)

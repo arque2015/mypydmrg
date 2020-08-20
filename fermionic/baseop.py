@@ -21,6 +21,9 @@ class BaseOperator(Operator):
         self._spin = spin
         self._isferm = isferm
         self._mat = val
+        shape = numpy.shape(val)
+        self._ldim = shape[0]
+        self._rdim = shape[1]
 
     @property
     def mat(self):
@@ -51,6 +54,12 @@ class BaseOperator(Operator):
         '''返回某个矩阵元'''
         return self._mat[lidx, ridx]
 
+    def get_block(self, idxs):
+        '''获取一个块'''
+        ret = self._mat[idxs]
+        ret = ret[:, idxs]
+        return ret
+
     def __str__(self):
         template = "BaseOperator: \n"
         template += 'Basis: %s\n' % self._basis.__class__.__name__
@@ -70,6 +79,8 @@ class Hamiltonian(Operator):
         ):
         super().__init__()
         self._basis = basis
+        self._ldim = basis.dim
+        self._rdim = basis.dim
         self._mat = mat
 
     @property
@@ -208,3 +219,4 @@ class Hamiltonian(Operator):
             for newidx2, idx2 in enumerate(idxs, 0):
                 mat[newidx1, newidx2] = self._mat[idx1, idx2]
         return mat
+
