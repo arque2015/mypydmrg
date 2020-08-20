@@ -3,6 +3,7 @@
 from basics.basis import SiteBasis
 from fermionic.baseop import BaseOperator
 from .operhelper import OperFactory
+from .superblockhelper import leftext_oper_to_superblock
 
 
 MEASOP_DICT = {
@@ -18,5 +19,8 @@ def create_meas_operator_of_site(basis: SiteBasis, prefix):
     return BaseOperator(siteidx, basis, tup.isferm, tup.mat, spin=tup.spin)
 
 
-#def get_super
+def get_leftext_blockmat_from_superidx(superext, meas, superidxs):
+    """从leftext基上的算符中提取相应的块出来"""
+    meassuper = leftext_oper_to_superblock(superext, meas)
+    return meassuper.get_block(superidxs)
 

@@ -204,9 +204,9 @@ def standard_dmrg(
         dconf.ground_basis_pair[1]
     )
     sbext = extend_merge_to_superblock(leftstorage.block, rightstorage.block)
-    ground_vec = numpy.zeros(sbext.dim)
-    for idx, sec in enumerate(dconf.ground_secidx, 0):
-        ground_vec[sec] = dconf.ground_vec[idx]
+    ground_vec = dconf.ground_vec#numpy.zeros(sbext.dim)
+    #for idx, sec in enumerate(dconf.ground_secidx, 0):
+    #    ground_vec[sec] = dconf.ground_vec[idx]
     #print(dconf.ground_basis_pair)
     for idx in range(1, model.size+1):
         #leftext最大的格子在phi_idx+1
@@ -217,11 +217,26 @@ def standard_dmrg(
         if idx < dconf.ground_basis_pair[0]+2:
             measoper = leftstorage.get_meas('sz', idx)
             measoper = leftext_oper_to_superblock(sbext, measoper)
-            val = numpy.matmul(ground_vec, numpy.matmul(measoper.mat, ground_vec))
+            measmat = measoper.get_block(dconf.ground_secidx)
+            val = numpy.matmul(ground_vec, numpy.matmul(measmat, ground_vec))
             print('Sz_%d' % idx, val)
             #leftext_oper_to_superblock()
         else:
             measoper = rightstorage.get_meas('sz', idx)
             measoper = rightext_oper_to_superblock(sbext, measoper)
-            val = numpy.matmul(ground_vec, numpy.matmul(measoper.mat, ground_vec))
+            measmat = measoper.get_block(dconf.ground_secidx)
+            val = numpy.matmul(ground_vec, numpy.matmul(measmat, ground_vec))
             print('Sz_%d' % idx, val)
+        #关联
+        for idx2 in range(1, model.size+1):
+            if idx2 < dconf.ground_basis_pair[0]+2:
+                measoper2 = leftstorage.get_meas('sz', idx2)
+                measoper2 = leftext_oper_to_superblock(sbext, measoper2)
+            else:
+                measoper2 = rightstorage.get_meas('sz', idx2)
+                measoper2 = rightext_oper_to_superblock(sbext, measoper2)
+            coropmat = numpy.matmul(measoper.mat, measoper2.mat)
+            coropmat = coropmat[dconf.ground_secidx]
+            coropmat = coropmat[:, dconf.ground_secidx]
+            val = numpy.matmul(ground_vec, numpy.matmul(coropmat, ground_vec))
+            print('Sz_%dSz_%d' % (idx, idx2), val)

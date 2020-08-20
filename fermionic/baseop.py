@@ -54,6 +54,12 @@ class BaseOperator(Operator):
         '''返回某个矩阵元'''
         return self._mat[lidx, ridx]
 
+    def get_block(self, idxs):
+        '''获取一个块'''
+        ret = self._mat[idxs]
+        ret = ret[:, idxs]
+        return ret
+
     def __str__(self):
         template = "BaseOperator: \n"
         template += 'Basis: %s\n' % self._basis.__class__.__name__
@@ -213,21 +219,4 @@ class Hamiltonian(Operator):
             for newidx2, idx2 in enumerate(idxs, 0):
                 mat[newidx1, newidx2] = self._mat[idx1, idx2]
         return mat
-
-
-class Correlation(Operator):
-    """两个算符的关联\n
-    """
-    def __init__(self, op1pre, op1idx, op2pre, op2idx):
-        self._op1pre = op1pre
-        self._op2pre = op2pre
-        self._op1idx = op1idx
-        self._op2idx = op2idx
-        self._mat = None
-        self._ldim = None
-        self._rdim = None
-        self._basis = None
-
-    def set_val(self, basis, mat):
-        '''TODO: 设置算符的数值'''
 
