@@ -3,6 +3,7 @@
 """
 
 import numpy
+import scipy.sparse
 from basics.operator import Operator
 from fermionic.superblock import SuperBlockExtend
 
@@ -81,6 +82,8 @@ class Hamiltonian(Operator):
         self._basis = basis
         self._ldim = basis.dim
         self._rdim = basis.dim
+        if not scipy.sparse.issparse(mat):
+            raise ValueError('mat不是稀疏矩阵')
         self._mat = mat
 
     @property
@@ -95,6 +98,10 @@ class Hamiltonian(Operator):
 
     def addnewterm(self, newmat):
         '''给现在的矩阵增加新的内容'''
+        if not scipy.sparse.issparse(newmat):
+            #raise ValueError('newmat不是稀疏矩阵')
+            print('newmat不是稀疏矩阵')
+            newmat = scipy.sparse.dok_matrix(newmat)
         self._mat += newmat
 
     def ele(self, lidx, ridx):
@@ -219,4 +226,3 @@ class Hamiltonian(Operator):
             for newidx2, idx2 in enumerate(idxs, 0):
                 mat[newidx1, newidx2] = self._mat[idx1, idx2]
         return mat
-

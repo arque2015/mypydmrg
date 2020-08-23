@@ -146,6 +146,8 @@ class BlockStorage(object):
         self._opers = {}
         #观测
         self._meass = {}
+        #
+        self._isfreeze = False
 
     @property
     def block(self):

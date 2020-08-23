@@ -3,6 +3,7 @@
 """
 
 import numpy
+import scipy.sparse
 from fermionic.block import LeftBlockExtend, RightBlockExtend
 from fermionic.superblock import SuperBlockExtend
 from fermionic.baseop import Hamiltonian, BaseOperator
@@ -23,16 +24,13 @@ def leftext_hamiltonian_to_superblock(
     #原本的哈密顿量在|phi^n-1, s^n>上
     #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
     # H' = H X I
-    mat = numpy.zeros([sbext.dim, sbext.dim])
     #右边的是高位
     highbit = sbext.rightblockextend.dim
     lowbitlen = sbext.leftblockextend.dim
     if lowbitlen != ham.basis.dim:
         raise ValueError('算符的基不一致')
-    for idx in range(highbit):
-        mat[idx*lowbitlen:(idx+1)*lowbitlen,\
-            idx*lowbitlen:(idx+1)*lowbitlen] =\
-                ham.mat
+    #
+    mat = scipy.sparse.block_diag([ham.mat] * highbit)
     return Hamiltonian(sbext, mat)
 
 
@@ -68,14 +66,24 @@ def rightext_hamiltonian_to_superblock(
     #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
     # H' = I X H，由于哈密顿量里面都是算符的二次项，而且right中的
     #编号都比左边要大，所以不会产生反对易的符号
-    mat = numpy.zeros([sbext.dim, sbext.dim])
     eyedim = sbext.leftblockextend.dim
     #循环rightext
-    for ridx in sbext.rightblockextend.iter_idx():
-        for lidx in sbext.rightblockextend.iter_idx():
-            #每一个right上面的值，现在都变成一个单位矩阵
-            mat[lidx*eyedim:(lidx+1)*eyedim, ridx*eyedim:(ridx+1)*eyedim] =\
-                numpy.eye(eyedim) * ham.mat[lidx, ridx]
+    #
+    block_arr = []
+    speye = scipy.sparse.eye(eyedim)
+    for lidx in sbext.rightblockextend.iter_idx():
+        row = []
+        block_arr.append(row)
+        for ridx in sbext.rightblockextend.iter_idx():
+            #每一个right上面的数值现在都是一个单位矩阵
+            if ham.mat[lidx, ridx] == 0:
+                if lidx == ridx:
+                    row.append(speye.multiply(0))
+                else:
+                    row.append(None)
+            else:
+                row.append(speye.multiply(ham.mat[lidx, ridx]))
+    mat = scipy.sparse.bmat(block_arr)
     return Hamiltonian(sbext, mat)
 
 
