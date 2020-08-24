@@ -168,7 +168,7 @@ def get_phival_from_hamleft(
             #从哈密顿量中抽出相同粒子数组成的block
             blockmat = hamleft.get_block(sidxlist)
             #对角化这个sector的哈密顿量，哈密顿量是不会改变自旋上下的数目的，可以块对角化
-            eigvals, eigvecs = numpy.linalg.eigh(blockmat)
+            eigvals, eigvecs = numpy.linalg.eigh(blockmat.toarray())
             #numpy的结果中，eigvecs的每一列是一个本正态
             for idx, eva in enumerate(eigvals, 0):
                 #phival中需要的是再整个LeftBlockExtend基上面的

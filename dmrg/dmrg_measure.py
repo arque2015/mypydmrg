@@ -1,6 +1,7 @@
 """简化观测的时候的调用"""
 
 import numpy
+import scipy.sparse
 from fermionic.baseop import BaseOperator
 from dmrghelpers.superblockhelper import leftext_oper_to_superblock
 from dmrghelpers.superblockhelper import rightext_oper_to_superblock
@@ -30,8 +31,13 @@ def measure_oper_of_site(conf: DMRGConfig, prefix: str, stidx: int):
         measmat = measoper.get_block(conf.ground_secidx)
     else:
         raise ValueError('没有这个指标')
-    val = numpy.matmul(conf.ground_vec,\
-        numpy.matmul(measmat, conf.ground_vec))
+    #val = numpy.matmul(conf.ground_vec,\
+    #    numpy.matmul(measmat.toarray(), conf.ground_vec))
+    spground = numpy.expand_dims(conf.ground_vec, 1)
+    spground = scipy.sparse.csr_matrix(spground)
+    val = measmat * spground
+    val = spground.transpose() * val
+    val = val[0, 0]
     return val
 
 
@@ -67,10 +73,18 @@ def measure_corr_of_2sites(
         measoper2 = rightstorage.get_meas(prefix, stidx2)
         measoper2 = rightext_oper_to_superblock(superext, measoper2)
     #
-    coropmat = numpy.matmul(measoper1.mat, measoper2.mat)
-    coropmat = coropmat[conf.ground_secidx]
-    coropmat = coropmat[:, conf.ground_secidx]
+    coropmat = measoper1.mat * measoper2.mat
+    #numpy.matmul(measoper1.mat.toarray(), measoper2.mat.toarray())
+    #coropmat = coropmat[conf.ground_secidx]
+    #coropmat = coropmat[:, conf.ground_secidx]
+    coropmat = coropmat.tocsr()[conf.ground_secidx]
+    coropmat = coropmat.tocsc()[:,conf.ground_secidx]
     #
-    val = numpy.matmul(conf.ground_vec,\
-        numpy.matmul(coropmat, conf.ground_vec))
+    #val = numpy.matmul(conf.ground_vec,\
+    #    numpy.matmul(coropmat, conf.ground_vec))
+    spground = numpy.expand_dims(conf.ground_vec, 1)
+    spground = scipy.sparse.csr_matrix(spground)
+    val = coropmat * spground
+    val = spground.transpose() * val
+    val = val[0, 0]
     return val

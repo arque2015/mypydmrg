@@ -14,7 +14,7 @@ def create_hamiltonian_of_site(basis, coef_u, coef_mu):
     '''单个格子的时候肯定是没有t的'''
     #用稀疏矩阵换掉
     #先不实现mu
-    mat = scipy.sparse.dok_matrix(coef_u * SINGLE_SITE_INTERACT_U)
+    mat = scipy.sparse.csr_matrix(coef_u * SINGLE_SITE_INTERACT_U)
     mat = mat.tocsr()
     return Hamiltonian(basis, mat)
 
@@ -36,7 +36,7 @@ def update_leftblockextend_hamiltonian(
     '''升级leftblockextend基上的哈密顿量到leftblock上'''
     if not isinstance(phival, numpy.ndarray):
         raise ValueError('phival不是ndarray')
-    spphival = scipy.sparse.dok_matrix(phival)
+    spphival = scipy.sparse.csr_matrix(phival)
     mat = ham.mat * spphival.transpose()
     mat = spphival * mat
     return Hamiltonian(lblk, mat)
@@ -76,7 +76,7 @@ def update_rightblockextend_hamiltonian(
     if not isinstance(phival, numpy.ndarray):
         raise ValueError('phival不是ndarray')
     #
-    spphival = scipy.sparse.dok_matrix(phival)
+    spphival = scipy.sparse.csr_matrix(phival)
     mat = ham.mat * spphival.transpose()
     mat = spphival * mat
     return Hamiltonian(rblk, mat)

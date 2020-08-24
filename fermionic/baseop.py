@@ -21,6 +21,8 @@ class BaseOperator(Operator):
         self._basis = bss
         self._spin = spin
         self._isferm = isferm
+        if not scipy.sparse.issparse(val):
+            raise ValueError('val不是稀疏矩阵')
         self._mat = val
         shape = numpy.shape(val)
         self._ldim = shape[0]
@@ -57,8 +59,9 @@ class BaseOperator(Operator):
 
     def get_block(self, idxs):
         '''获取一个块'''
-        ret = self._mat[idxs]
-        ret = ret[:, idxs]
+        #
+        ret = self._mat.tocsr()[idxs]
+        ret = ret.tocsc()[:, idxs]
         return ret
 
     def __str__(self):
@@ -99,9 +102,9 @@ class Hamiltonian(Operator):
     def addnewterm(self, newmat):
         '''给现在的矩阵增加新的内容'''
         if not scipy.sparse.issparse(newmat):
-            #raise ValueError('newmat不是稀疏矩阵')
-            print('newmat不是稀疏矩阵')
-            newmat = scipy.sparse.dok_matrix(newmat)
+            raise ValueError('newmat不是稀疏矩阵')
+            #print('newmat不是稀疏矩阵')
+            #newmat = scipy.sparse.csr_matrix(newmat)
         self._mat += newmat
 
     def ele(self, lidx, ridx):
@@ -131,7 +134,7 @@ class Hamiltonian(Operator):
             raise ValueError('op2的dim对不上')
         # C^+_1 C_2
         op2t = op2.mat.transpose()
-        mat = numpy.matmul(op1.mat, op2t)
+        mat = op1.mat * op2t#umpy.matmul(op1.mat, op2t)
         # + C^+_2 C_1
         matt = mat.transpose()
         mat = mat + matt
@@ -153,18 +156,19 @@ class Hamiltonian(Operator):
         '''
         #先将left算符整理成平的，在整理之前先把列的粒子数统计
         #这个和反对易的符号有关系
+        #右乘一个有正负号的单位矩阵上去
         if not isinstance(self._basis, SuperBlockExtend):
             raise ValueError('只能给superblock用')
         leftext = self._basis.leftblockextend
         rightext = self._basis.rightblockextend
-        mat1 = numpy.ndarray(numpy.shape(op1.mat))
+        diavals = []
         for col in leftext.iter_idx():
             _pnum = leftext.spin_nums[col]
             _parti_num = numpy.sum(_pnum)
-            if _parti_num % 2 == 0:
-                mat1[:, col] = op1.mat[:, col]
-            else:
-                mat1[:, col] = -op1.mat[:, col]
+            diavals.append(1.0 if _parti_num % 2 == 0 else -1.0)
+        fsign = scipy.sparse.dia_matrix((diavals, 0), op1.mat.shape)
+        mat1 = op1.mat * fsign
+        mat1 = mat1.todok()
         #将左右两个算符整理成向量
         #mat1 = numpy.reshape(mat1, [numpy.square(leftext.dim)])
         #mat2 = numpy.reshape(op2.mat.transpose(), [numpy.square(rightext.dim)])
@@ -181,8 +185,7 @@ class Hamiltonian(Operator):
         #用einsum不会让reshape变的特别慢，虽然reshape还是很慢
         #为什么einsum快不知道
         #mat2 = op2.mat.transpose()#einsum中改顺序了，这个时候用哪个都差不多速度区别不大
-        mat2 = op2.mat
-        mato1 = numpy.einsum('ij,lk->kilj', mat1, mat2)
+        mat2 = op2.mat.todok()
         #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
         #和需要的（ld1*rd1, ld2*rd2）是一样的
         _dim = leftext.dim * rightext.dim
@@ -198,13 +201,25 @@ class Hamiltonian(Operator):
         #    mato[idx, idx:] = mato[idx, idx:] + mato[idx:, idx]
         #    mato[idx:, idx] = mato[idx, idx:]
         #mato = add_transpose_to(mato)
-        #利用转置会触发copy，非常慢
-        mato2 = numpy.einsum('kl,ji->kilj', mat2, mat1)
-        #mato2 = numpy.reshape(mato2, [_dim, _dim])
-        mato = mato1 + mato2
-        mato = numpy.reshape(mato, [_dim, _dim])
-        # t系数
-        mato = -coeft * mato
+        #先构造mato1
+        mato1 = scipy.sparse.dok_matrix((_dim, _dim))
+        idxilist, idxjlist = mat1.nonzero()
+        idxllist, idxklist = mat2.nonzero()
+        for idxi, idxj in zip(idxilist, idxjlist):
+            for idxl, idxk in zip(idxllist, idxklist):
+                mato1[idxk * leftext.dim + idxi, idxl * leftext.dim + idxj]\
+                    = mat1[idxi, idxj] * mat2[idxl, idxk]
+        #再构造mato2
+        mato2 = scipy.sparse.dok_matrix((_dim, _dim))
+        idxklist, idxllist = idxllist, idxklist
+        idxjlist, idxilist = idxilist, idxjlist
+        for idxk, idxl in zip(idxklist, idxllist):
+            for idxj, idxi in zip(idxjlist, idxilist):
+                mato2[idxk *leftext.dim + idxi, idxl * leftext.dim + idxj]\
+                    = mat2[idxk, idxl] * mat1[idxj, idxi]
+        #
+        mato = mato1.tocsr() + mato2.tocsr()
+        mato = mato.multiply(-coeft)
         self.addnewterm(mato)
         return mato
 
@@ -221,8 +236,15 @@ class Hamiltonian(Operator):
         这个时候再创建一个新的Basis没有必要（？），
         调用者自己管理对应的基
         '''
-        mat = numpy.zeros([len(idxs), len(idxs)])
+        #
+        mat = scipy.sparse.dok_matrix((len(idxs), len(idxs)))
+        fullmat = None
+        if scipy.sparse.isspmatrix_coo(self._mat):
+            fullmat = self._mat.todok()
+        else:
+            fullmat = self._mat
         for newidx1, idx1 in enumerate(idxs, 0):
             for newidx2, idx2 in enumerate(idxs, 0):
-                mat[newidx1, newidx2] = self._mat[idx1, idx2]
+                mat[newidx1, newidx2] = fullmat[idx1, idx2]
+        mat = mat.tocsr() 
         return mat

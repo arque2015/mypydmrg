@@ -25,7 +25,7 @@ def main():
     modelsize = 6
     hubbard = HubbardChain(modelsize, 4.0)
     spin_sector = (modelsize // 2, modelsize // 2)
-    measures = [('sz', 1), ('sz', 2), ('sz', 3)]#, ('sz', 4), ('sz', 5), ('sz', 6)]
+    measures = [('sz', 1), ('sz', 2), ('sz', 3), ('sz', 4), ('sz', 5), ('sz', 6)]
     #DMRG时的maxkeep
     dkeep = [15 + modelsize*idx for idx in range(modelsize-4)]
     #开始dmrg
