@@ -63,7 +63,7 @@ def main():
     nkeep = 15
     #开始dmrg
     standard_dmrg(
-        hubbard, spin_sector, nkeep, dkeep
+        hubbard, spin_sector, nkeep, dkeep, []
     )
 
 if __name__ == "__main__":
@@ -78,7 +78,9 @@ if __name__ == "__main__":
 就可以进行计算了  
 
 在计算更大，更复杂的格子的时候，应该改进两个`python`文件里的代码来实现想要的功能。  
-  
+
+### 观测设置
+现在版本只能观测Sz之间的关联，可以参考 `examples` 中的代码。
 
 
 ### 运行要求
