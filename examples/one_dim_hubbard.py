@@ -1,11 +1,13 @@
 """计算一维的Hubbard链"""
 
+import tracemalloc
 from lattice.one_dim_chain import HubbardChain
 from dmrg import standard_dmrg
 
 
 def main():
     '''开始算法'''
+    tracemalloc.start()
     #首先设置格子
     #PBC时，6个格子基态能量-8.0，8个格子-9.65685425
     #在U=1时能量时-6.60115829，U=2时能量-5.40945685
@@ -30,6 +32,14 @@ def main():
     standard_dmrg(
         hubbard, spin_sector, 15, dkeep, measures
     )
+    #内存使用状况
+    print('峰值内存 ', tracemalloc.get_traced_memory()[1])
+    snapshot = tracemalloc.take_snapshot()
+    sta = snapshot.statistics('filename')
+    for msta in sta[:10]:
+        print(msta)
+    #print(sta[:10])
+
 
 
 if __name__ == "__main__":

@@ -269,7 +269,7 @@ class LeftBlockExtend(ProdBasis):
         return template
 
 
-    def merge_to_block(self, phival, pnum_list=None):
+    def merge_to_block(self, spphival, pnum_list=None):
         '''将这个|phi^n-1>X|s^n>合并成|phi^n>
         phival需要是一个二维数组，行数是合并后保留的基的数量，
         列数需要与self.dim一致，注意在计算phival的过程中，
@@ -277,15 +277,15 @@ class LeftBlockExtend(ProdBasis):
         保证结果的一致性
         '''
         newstbs = self._fock_basis
-        stnum = len(phival)
+        stnum = spphival.shape[0]#len(phival)
         newmat = None
         if DEBUG_MODE:
             #新的initmat应该包含stnum行，fock_basis.dim列
             #new_fock_dict[phi^n, sitebasis] =\
             #sum_phi^n-1{phival[phi^n, phi^n-1] * fock_dict[phi^n-1, sitebasis]}
-            newmat = numpy.matmul(phival, self._fock_dict)
+            newmat = numpy.matmul(spphival.toarray(), self._fock_dict)
         newlb = LeftBlock(newstbs, stnum, initmat=newmat, partnum=pnum_list)
-        newlb.set_sub_block(self, phival)
+        newlb.set_sub_block(self, spphival)
         return newlb
 
     def get_spin_sector(self, nspin):
@@ -419,7 +419,7 @@ class RightBlockExtend(ProdBasis):
             template += '\n'
         return template
 
-    def merge_to_block(self, phival, pnum_list=None):
+    def merge_to_block(self, spphival, pnum_list=None):
         '''将这个|s^n-1>X|phi^n>合并成|phi^n-1>
         phival需要是一个二维数组，行数是合并后保留的基的数量，
         列数需要与self.dim一致，注意在计算phival的过程中，
@@ -427,15 +427,15 @@ class RightBlockExtend(ProdBasis):
         保证结果的一致性
         '''
         newstbs = self._fock_basis
-        stnum = len(phival)
+        stnum = spphival.shape[0]#len(phival)
         newmat = None
         if DEBUG_MODE:
             #新的initmat应该包含stnum行，fock_basis.dim列
             #new_fock_dict[phi^n-1, sitebasis] =\
             #sum_phi^n{phival[phi^n-1, phi^n] * fock_dict[phi^n, sitebasis]}
-            newmat = numpy.matmul(phival, self._fock_dict)
+            newmat = numpy.matmul(spphival, self._fock_dict)
         newrb = RightBlock(newstbs, stnum, initmat=newmat, partnum=pnum_list)
-        newrb.set_sub_block(self, phival)
+        newrb.set_sub_block(self, spphival)
         return newrb
 
     def get_spin_sector(self, nspin):
