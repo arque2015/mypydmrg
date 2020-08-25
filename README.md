@@ -63,7 +63,7 @@ def main():
     nkeep = 15
     #开始dmrg
     standard_dmrg(
-        hubbard, spin_sector, nkeep, dkeep
+        hubbard, spin_sector, nkeep, dkeep, []
     )
 
 if __name__ == "__main__":
@@ -83,8 +83,11 @@ if __name__ == "__main__":
 
 ### 运行要求
 
-程序完全使用python3实现，此外需要 `numpy` 库，安装好python3和numpy即可。
-  
+程序完全使用python3实现，此外需要 `numpy` 库和 `scipy` 库。  
+安装好python3和numpy，scipy即可。  
+
+### 观测设置
+参见 `examples` 中的代码。
 
 
 ### 备忘
