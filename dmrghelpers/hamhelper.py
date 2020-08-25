@@ -31,12 +31,13 @@ def extend_leftblock_hamiltonian(ham: Hamiltonian, lbkext: LeftBlockExtend):
 def update_leftblockextend_hamiltonian(
         lblk: LeftBlock,
         ham: Hamiltonian,
-        phival
+        spphival
     ):
     '''升级leftblockextend基上的哈密顿量到leftblock上'''
-    if not isinstance(phival, numpy.ndarray):
-        raise ValueError('phival不是ndarray')
-    spphival = scipy.sparse.csr_matrix(phival)
+    #if not isinstance(phival, numpy.ndarray):
+    #    raise ValueError('phival不是ndarray')
+    if not scipy.sparse.issparse(spphival):
+        raise ValueError('spphival不是稀疏矩阵')
     mat = ham.mat * spphival.transpose()
     mat = spphival * mat
     return Hamiltonian(lblk, mat)
@@ -70,13 +71,14 @@ def extend_rightblock_hamiltonian(ham: Hamiltonian, rbkext: RightBlockExtend):
 def update_rightblockextend_hamiltonian(
         rblk: RightBlock,
         ham: Hamiltonian,
-        phival
+        spphival
     ):
     '''升级rightblockextend基上的哈密顿量到rightblock上'''
-    if not isinstance(phival, numpy.ndarray):
-        raise ValueError('phival不是ndarray')
+    #if not isinstance(phival, numpy.ndarray):
+    #    raise ValueError('phival不是ndarray')
     #
-    spphival = scipy.sparse.csr_matrix(phival)
+    if not scipy.sparse.issparse(spphival):
+        raise ValueError('spphval不是稀疏矩阵')
     mat = ham.mat * spphival.transpose()
     mat = spphival * mat
     return Hamiltonian(rblk, mat)

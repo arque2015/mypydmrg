@@ -3,6 +3,7 @@
 """
 
 import numpy
+import scipy.sparse
 from dmrghelpers.superblockhelper import extend_merge_to_superblock
 from dmrghelpers.superblockhelper import leftext_hamiltonian_to_superblock
 from dmrghelpers.superblockhelper import rightext_hamiltonian_to_superblock
@@ -193,7 +194,7 @@ def get_phival_from_density_sector(
     '''得到更新rightext的phival'''
     extblk = storage.block
     #
-    eigpair = {}
+    speigpair = {}
     _tot_vec = 0
     #给每个sector的密度矩阵对角化
     for sector in sp_sec_mat_dict:
@@ -202,39 +203,34 @@ def get_phival_from_density_sector(
         _tot_vec += len(rsecidxs)
         for idx, eva in enumerate(eigvals, 0):
             #这个时候，要把sector上面的向量扩展到整个rightext基上
-            extend_vec = numpy.zeros(extblk.dim)
+            spextend_vec = scipy.sparse.dok_matrix((1, extblk.dim))
             for idx2, bidx in enumerate(rsecidxs, 0):
-                extend_vec[bidx] = eigvecs[idx2, idx]
-            if eva in eigpair:
-                eigpair[eva].append(extend_vec)
+                spextend_vec[0, bidx] = eigvecs[idx2, idx]
+            if eva in speigpair:
+                speigpair[eva].append(spextend_vec)
             else:
-                eigpair[eva] = [extend_vec]
+                speigpair[eva] = [spextend_vec]
     #
     _maxkeep = maxkeep
     if _maxkeep > _tot_vec:
         _maxkeep = _tot_vec
     #选择前_maxkeep个分量
-    phival = numpy.zeros([_maxkeep, extblk.dim])
+    spphival = scipy.sparse.dok_matrix((_maxkeep, extblk.dim))
     #给本正值排序
     #和NRG给能量本正值排序不同，这里降序排序
-    eigvals_sorted = numpy.sort(list(eigpair.keys()))[::-1]
-    #验证密度矩阵本正值的求和
-    #densum = 0
-    #for eva in eigvals_sorted:
-    #    densum += len(eigpair[eva]) * eva
-    #print('density sum: ', densum)
     #把前_max_keep个赋值给phi_val
-    phirow = 0
-    densum = 0
-    for eva in eigvals_sorted:
-        for eve in eigpair[eva]:
-            phival[phirow, :] = eve
-            phirow += 1
-            densum += eva
-            if phirow >= _maxkeep:
+    speigvals_sorted = numpy.sort(list(speigpair.keys()))[::-1]
+    spphirow = 0
+    spdensum = 0.
+    for eva in speigvals_sorted:
+        for eve in speigpair[eva]:
+            spphival[spphirow, :] = eve
+            spphirow += 1
+            spdensum += eva
+            if spphirow >= _maxkeep:
                 break
-        if phirow >= _maxkeep:
+        if spphirow >= _maxkeep:
             break
-    print('density remain: ', densum)
-    #
-    return phival
+    print('density remain: ', spdensum)
+    spphival = spphival.tocsr()
+    return spphival

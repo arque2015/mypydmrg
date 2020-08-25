@@ -191,13 +191,13 @@ def leftsite_extend_oper(
 def update_leftblockextend_oper(
         newlbk: LeftBlock,
         oper: BaseOperator,
-        phival
+        spphival
     ):
     '''利用21.19左右的式子'''
-    if not isinstance(phival, numpy.ndarray):
-        raise ValueError('phival不是ndarray')
-    #
-    spphival = scipy.sparse.csr_matrix(phival)
+    #if not isinstance(phival, numpy.ndarray):
+    #    raise ValueError('phival不是ndarray')
+    if not scipy.sparse.issparse(spphival):
+        raise ValueError('spphival不是稀疏矩阵')
     mat = oper.mat * spphival.transpose()
     mat = spphival * mat
     return BaseOperator(oper.siteidx, newlbk, oper.isferm, mat, spin=oper.spin)
@@ -268,13 +268,13 @@ def rightsite_extend_oper(
 def update_rightblockextend_oper(
         newrbk: RightBlock,
         oper: BaseOperator,
-        phival
+        spphival
     ):
     '''利用21.19左右的式子'''
-    if not isinstance(phival, numpy.ndarray):
-        raise ValueError('phival不是ndarray')
-    #
-    spphival = scipy.sparse.csr_matrix(phival)
+    #if not isinstance(phival, numpy.ndarray):
+    #    raise ValueError('phival不是ndarray')
+    if not scipy.sparse.issparse(spphival):
+        raise ValueError('spphival不是稀疏矩阵')
     mat = oper.mat * spphival.transpose()
     mat = spphival * mat
     return BaseOperator(oper.siteidx, newrbk, oper.isferm, mat, spin=oper.spin)
