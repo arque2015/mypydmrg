@@ -233,19 +233,15 @@ def rightblock_extend_oper(
         speye = scipy.sparse.dia_matrix((eyevals, 0), shape=(eyedim, eyedim))
     else:
         speye = scipy.sparse.eye(eyedim)
+    speye = speye.tocsr()
     #
-    block_arr = []
-    for lidx in rightext.rblk.iter_idx():
-        row = []
-        block_arr.append(row)
-        for ridx in rightext.rblk.iter_idx():
-            if opermat[lidx, ridx] == 0:
-                if lidx == ridx:
-                    row.append(scipy.sparse.csr_matrix((eyedim, eyedim)))
-                else:
-                    row.append(None)
-            else:
-                row.append(speye.multiply(opermat[lidx, ridx]))
+    block_arr = numpy.array([[None]*rightext.rblk.dim]*rightext.rblk.dim)
+    idxllist, idxrlist = opermat.nonzero()
+    for lidx, ridx in zip(idxllist, idxrlist):
+        block_arr[lidx, ridx] = speye.multiply(opermat[lidx, ridx])
+    for idx in range(rightext.rblk.dim):
+        if block_arr[idx, idx] is None:
+            block_arr[idx, idx] = scipy.sparse.dok_matrix((eyedim, eyedim))
     mat = scipy.sparse.bmat(block_arr)
     return BaseOperator(oper.siteidx, rightext, oper.isferm, mat, spin=oper.spin)
 

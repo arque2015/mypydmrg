@@ -64,22 +64,19 @@ def rightext_hamiltonian_to_superblock(
     # H' = I X H，由于哈密顿量里面都是算符的二次项，而且right中的
     #编号都比左边要大，所以不会产生反对易的符号
     eyedim = sbext.leftblockextend.dim
-    #循环rightext
+    hammat = ham.mat.todok()\
+        if scipy.sparse.isspmatrix_coo(ham.mat) else ham.mat
     #
-    block_arr = []
-    speye = scipy.sparse.eye(eyedim)
-    for lidx in sbext.rightblockextend.iter_idx():
-        row = []
-        block_arr.append(row)
-        for ridx in sbext.rightblockextend.iter_idx():
-            #每一个right上面的数值现在都是一个单位矩阵
-            if ham.mat[lidx, ridx] == 0:
-                if lidx == ridx:
-                    row.append(speye.multiply(0))
-                else:
-                    row.append(None)
-            else:
-                row.append(speye.multiply(ham.mat[lidx, ridx]))
+    speye = scipy.sparse.eye(eyedim).tocsr()
+    #
+    block_arr = numpy.array([[None]*sbext.rightblockextend.dim]\
+        *sbext.rightblockextend.dim)
+    idxllist, idxrlist = hammat.nonzero()
+    for lidx, ridx in zip(idxllist, idxrlist):
+        block_arr[lidx, ridx] = speye.multiply(hammat[lidx, ridx])
+    for idx in range(sbext.rightblockextend.dim):
+        if block_arr[idx, idx] is None:
+            block_arr[idx, idx] = scipy.sparse.dok_matrix((eyedim, eyedim))
     mat = scipy.sparse.bmat(block_arr)
     return Hamiltonian(sbext, mat)
 
@@ -108,18 +105,15 @@ def rightext_oper_to_superblock(
             speye = scipy.sparse.dia_matrix((eyevals, 0), shape=(eyedim, eyedim))
     else:
         speye = scipy.sparse.eye(eyedim)
+    speye = speye.tocsr()
     #
-    block_arr = []
-    for lidx in sbext.rightblockextend.iter_idx():
-        row = []
-        block_arr.append(row)
-        for ridx in sbext.rightblockextend.iter_idx():
-            if opermat[lidx, ridx] == 0:
-                if lidx == ridx:
-                    row.append(scipy.sparse.csr_matrix((eyedim, eyedim)))
-                else:
-                    row.append(None)
-            else:
-                row.append(speye.multiply(opermat[lidx, ridx]))
+    block_arr = numpy.array([[None]*sbext.rightblockextend.dim]\
+        *sbext.rightblockextend.dim)
+    idxllist, idxrlist = opermat.nonzero()
+    for lidx, ridx in zip(idxllist, idxrlist):
+        block_arr[lidx, ridx] = speye.multiply(opermat[lidx, ridx])
+    for idx in range(sbext.rightblockextend.dim):
+        if block_arr[idx, idx] is None:
+            block_arr[idx, idx] = scipy.sparse.dok_matrix((eyedim, eyedim))
     mat = scipy.sparse.bmat(block_arr)
     return BaseOperator(oper.siteidx, sbext, oper.isferm, mat, spin=oper.spin)
