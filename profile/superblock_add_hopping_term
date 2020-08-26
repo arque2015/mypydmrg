@@ -1,0 +1,191 @@
+Wrote profile results to one_dim_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 22.637 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: superblock_add_hopping_term at line 147
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   147                                               @profile
+   148                                               def superblock_add_hopping_term(
+   149                                                       self,
+   150                                                       op1: BaseOperator, op2: BaseOperator,
+   151                                                       coeft
+   152                                                   ):
+   153                                                   '''在superblock上添加hopping项目\n
+   154                                                   op1必须是leftblockext上面的算符，op2也必须是rightblockext\n
+   155                                                   Issue#16：优化速度
+   156                                                   '''
+   157                                                   #先将left算符整理成平的，在整理之前先把列的粒子数统计
+   158                                                   #这个和反对易的符号有关系
+   159                                                   #右乘一个有正负号的单位矩阵上去
+   160        32        103.0      3.2      0.0          if not isinstance(self._basis, SuperBlockExtend):
+   161                                                       raise ValueError('只能给superblock用')
+   162        32        109.0      3.4      0.0          leftext = self._basis.leftblockextend
+   163        32         71.0      2.2      0.0          rightext = self._basis.rightblockextend
+   164        32         50.0      1.6      0.0          diavals = []
+   165      1696       2727.0      1.6      0.0          for col in leftext.iter_idx():
+   166      1664       7306.0      4.4      0.0              _pnum = leftext.spin_nums[col]
+   167      1664      17276.0     10.4      0.1              _parti_num = numpy.sum(_pnum)
+   168      1664       4900.0      2.9      0.0              diavals.append(1.0 if _parti_num % 2 == 0 else -1.0)
+   169        32       4882.0    152.6      0.0          fsign = scipy.sparse.dia_matrix((diavals, 0), op1.mat.shape)
+   170        32      27523.0    860.1      0.1          mat1 = op1.mat * fsign
+   171        32      12755.0    398.6      0.1          mat1 = mat1.todok()
+   172                                                   #将左右两个算符整理成向量
+   173                                                   #mat1 = numpy.reshape(mat1, [numpy.square(leftext.dim)])
+   174                                                   #mat2 = numpy.reshape(op2.mat.transpose(), [numpy.square(rightext.dim)])
+   175                                                   ##给两个向量做外积，这个时候出来的矩阵的形状是（ld1*ld2, rd1*rd2）
+   176                                                   ##目标的形状是（ld1*rd1, ld2*rd2)
+   177                                                   #mato = numpy.outer(mat1, mat2)
+   178                                                   ##给现在的reshape,把ld1,ld2,rd1,rd2分开
+   179                                                   #mato = numpy.reshape(mato,\
+   180                                                   #    [leftext.dim, leftext.dim,\
+   181                                                   #        rightext.dim, rightext.dim])
+   182                                                   ##调整顺序，注意在numpy中存储的时候，是先遍历靠后的指标的，
+   183                                                   ##所以调整成（rd1, ld1, rd2, ld2)
+   184                                                   #mato = numpy.transpose(mato, [2, 0, 3, 1])
+   185                                                   #用einsum不会让reshape变的特别慢，虽然reshape还是很慢
+   186                                                   #为什么einsum快不知道
+   187                                                   #mat2 = op2.mat.transpose()#einsum中改顺序了，这个时候用哪个都差不多速度区别不大
+   188        32       4133.0    129.2      0.0          mat2 = op2.mat.todok()
+   189                                                   #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
+   190                                                   #和需要的（ld1*rd1, ld2*rd2）是一样的
+   191        32        138.0      4.3      0.0          _dim = leftext.dim * rightext.dim
+   192                                                   #mato1 = numpy.reshape(mato1, [_dim, _dim])
+   193                                                   #加上他的复共厄（纯实所以是转置）
+   194                                                   #mato = numpy.random.randn(_dim, _dim)
+   195                                                   #matot = numpy.random.randn(_dim, _dim)
+   196                                                   #matot = mato.transpose()#numpy.random.randn(_dim, _dim)
+   197                                                   #matot = mato[::-1]
+   198                                                   #numpy.copy(mato).transpose()#mato.T#transpose()
+   199                                                   #mato = mato + matot#numpy.add(mato, matot)#
+   200                                                   #for idx in range(_dim):
+   201                                                   #    mato[idx, idx:] = mato[idx, idx:] + mato[idx:, idx]
+   202                                                   #    mato[idx:, idx] = mato[idx, idx:]
+   203                                                   #mato = add_transpose_to(mato)
+   204                                                   #先构造mato1
+   205        32       1020.0     31.9      0.0          mato1 = scipy.sparse.dok_matrix((_dim, _dim))
+   206        32       5475.0    171.1      0.0          idxilist, idxjlist = mat1.nonzero()
+   207        32       4930.0    154.1      0.0          idxllist, idxklist = mat2.nonzero()
+   208      1568       4291.0      2.7      0.0          for idxi, idxj in zip(idxilist, idxjlist):
+   209     74080     178411.0      2.4      0.8              for idxl, idxk in zip(idxllist, idxklist):
+   210     72544    3538476.0     48.8     15.6                  mato1[idxk * leftext.dim + idxi, idxl * leftext.dim + idxj]\
+   211     72544    5256238.0     72.5     23.2                      = mat1[idxi, idxj] * mat2[idxl, idxk]
+   212                                                   #使用外积的方式构造mato1
+   213        32      12471.0    389.7      0.1          mat1f = mat1.reshape((leftext.dim * leftext.dim, 1))
+   214        32      14460.0    451.9      0.1          mat2f = mat2.transpose().reshape((1, rightext.dim * rightext.dim))
+   215                                                   #
+   216        32      21884.0    683.9      0.1          mato1f = mat1f * mat2f
+   217                                                   #(l1*l2, r1*r2) -> (r1*l1, r2*l2)
+   218                                                   #这个时候每个(l1, l2)的矩阵就是一个小块
+   219        32       5812.0    181.6      0.0          mato1f = mato1f.tocsc()
+   220        32       6892.0    215.4      0.0          block_arr = numpy.array([[None]*rightext.dim]*rightext.dim)
+   221        32       5463.0    170.7      0.0          idxr2list, idxr1list = mat2.nonzero()#因为要做transpose，2，1翻过来
+   222      1704       4491.0      2.6      0.0          for idxr1, idxr2 in zip(idxr1list, idxr2list):#range(rightext.dim):
+   223      1672       4213.0      2.5      0.0              block_arr[idxr1, idxr2] = \
+   224      3344     772033.0    230.9      3.4                  mato1f[:, idxr1*rightext.dim + idxr2]\
+   225      1672       4408.0      2.6      0.0                      .reshape((leftext.dim, leftext.dim))
+   226      1792       2537.0      1.4      0.0          for idxr in range(rightext.dim):
+   227      1760       2664.0      1.5      0.0              if block_arr[idxr, idxr] is None:
+   228      1760      47214.0     26.8      0.2                  block_arr[idxr, idxr] = scipy.sparse.dok_matrix((leftext.dim, leftext.dim))
+   229        32     613363.0  19167.6      2.7          mato1b = scipy.sparse.bmat(block_arr)
+   230        32     414994.0  12968.6      1.8          assert numpy.allclose(mato1b.toarray(), mato1.toarray())
+   231        32    2375260.0  74226.9     10.5          #再构造mato2
+   232                                                   mato2 = scipy.sparse.dok_matrix((_dim, _dim))
+   233        32       2924.0     91.4      0.0          idxklist, idxllist = idxllist, idxklist
+   234        32         64.0      2.0      0.0          idxjlist, idxilist = idxilist, idxjlist
+   235        32         49.0      1.5      0.0          for idxk, idxl in zip(idxklist, idxllist):
+   236      1704       5224.0      3.1      0.0              for idxj, idxi in zip(idxjlist, idxilist):
+   237     74216     196647.0      2.6      0.9                  mato2[idxk *leftext.dim + idxi, idxl * leftext.dim + idxj]\
+   238     72544    3648571.0     50.3     16.1                      = mat2[idxk, idxl] * mat1[idxj, idxi]
+   239     72544    5291756.0     72.9     23.4          #
+   240                                                   mato = mato1.tocsr() + mato2.tocsr()
+   241        32      94586.0   2955.8      0.4          mato = mato.multiply(-coeft)
+   242        32       4290.0    134.1      0.0          self.addnewterm(mato)
+   243        32      13865.0    433.3      0.1          return mato
+
+
+使用外积，然后利用bmat重组
+随后的过程也直接使用转置，因为稀疏矩阵的copy快很多，在维度更大的时候，
+是不是要改掉转置以后可以测试。
+
+Wrote profile results to one_dim_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 1.60224 s
+File: /home/mary/mypydmrg/fermionic/baseop.py
+Function: superblock_add_hopping_term at line 147
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   147                                               @profile
+   148                                               def superblock_add_hopping_term(
+   149                                                       self,
+   150                                                       op1: BaseOperator, op2: BaseOperator,
+   151                                                       coeft
+   152                                                   ):
+   153                                                   '''在superblock上添加hopping项目\n
+   154                                                   op1必须是leftblockext上面的算符，op2也必须是rightblockext\n
+   155                                                   Issue#16：优化速度
+   156                                                   '''
+   157                                                   #先将left算符整理成平的，在整理之前先把列的粒子数统计
+   158                                                   #这个和反对易的符号有关系
+   159                                                   #右乘一个有正负号的单位矩阵上去
+   160        32         64.0      2.0      0.0          if not isinstance(self._basis, SuperBlockExtend):
+   161                                                       raise ValueError('只能给superblock用')
+   162        32         93.0      2.9      0.0          leftext = self._basis.leftblockextend
+   163        32         65.0      2.0      0.0          rightext = self._basis.rightblockextend
+   164        32         40.0      1.2      0.0          diavals = []
+   165      1696       2395.0      1.4      0.1          for col in leftext.iter_idx():
+   166      1664       7061.0      4.2      0.4              _pnum = leftext.spin_nums[col]
+   167      1664      16282.0      9.8      1.0              _parti_num = numpy.sum(_pnum)
+   168      1664       4722.0      2.8      0.3              diavals.append(1.0 if _parti_num % 2 == 0 else -1.0)
+   169        32       3999.0    125.0      0.2          fsign = scipy.sparse.dia_matrix((diavals, 0), op1.mat.shape)
+   170        32      26401.0    825.0      1.6          mat1 = op1.mat * fsign
+   171        32         91.0      2.8      0.0          mat1 = mat1.tocsr()
+   172        32       5648.0    176.5      0.4          mat2 = op2.mat.tocsr()
+   173                                                   #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
+   174                                                   #和需要的（ld1*rd1, ld2*rd2）是一样的
+   175        32        137.0      4.3      0.0          _dim = leftext.dim * rightext.dim
+   176                                                   #先构造mato1
+   177                                                   #mato1 = scipy.sparse.dok_matrix((_dim, _dim))
+   178                                                   #idxilist, idxjlist = mat1.nonzero()
+   179                                                   #idxllist, idxklist = mat2.nonzero()
+   180                                                   #for idxi, idxj in zip(idxilist, idxjlist):
+   181                                                   #    for idxl, idxk in zip(idxllist, idxklist):
+   182                                                   #        mato1[idxk * leftext.dim + idxi, idxl * leftext.dim + idxj]\
+   183                                                   #            = mat1[idxi, idxj] * mat2[idxl, idxk]
+   184                                                   #使用外积的方式构造mato1
+   185        32       9577.0    299.3      0.6          mat1f = mat1.reshape((leftext.dim * leftext.dim, 1))
+   186        32      12279.0    383.7      0.8          mat2f = mat2.transpose().reshape((1, rightext.dim * rightext.dim))
+   187                                                   #
+   188        32      22099.0    690.6      1.4          mato1f = mat1f * mat2f
+   189                                                   #(l1*l2, r1*r2) -> (r1*l1, r2*l2)
+   190                                                   #这个时候每个(l1, l2)的矩阵就是一个小块
+   191        32         87.0      2.7      0.0          mato1f = mato1f.tocsr()
+   192        32       6838.0    213.7      0.4          block_arr = numpy.array([[None]*rightext.dim]*rightext.dim)
+   193        32       4319.0    135.0      0.3          idxr2list, idxr1list = mat2.nonzero()#因为要做transpose，2，1翻过来
+   194      1704       4318.0      2.5      0.3          for idxr1, idxr2 in zip(idxr1list, idxr2list):#range(rightext.dim):
+   195      1672       3873.0      2.3      0.2              block_arr[idxr1, idxr2] = \
+   196      3344     773263.0    231.2     48.3                  mato1f[:, idxr1*rightext.dim + idxr2]\
+   197      1672       3894.0      2.3      0.2                      .reshape((leftext.dim, leftext.dim))
+   198      1792       2232.0      1.2      0.1          for idxr in range(rightext.dim):
+   199      1760       2413.0      1.4      0.2              if block_arr[idxr, idxr] is None:
+   200      1760      47232.0     26.8      2.9                  block_arr[idxr, idxr] = scipy.sparse.dok_matrix((leftext.dim, leftext.dim))
+   201        32     600240.0  18757.5     37.5          mato1 = scipy.sparse.bmat(block_arr)
+   202                                                   #assert numpy.allclose(mato1b.toarray(), mato1.toarray())
+   203                                                   #再构造mato2
+   204                                                   #mato2 = scipy.sparse.dok_matrix((_dim, _dim))
+   205                                                   #idxklist, idxllist = idxllist, idxklist
+   206                                                   #idxjlist, idxilist = idxilist, idxjlist
+   207                                                   #for idxk, idxl in zip(idxklist, idxllist):
+   208                                                   #    for idxj, idxi in zip(idxjlist, idxilist):
+   209                                                   #        mato2[idxk *leftext.dim + idxi, idxl * leftext.dim + idxj]\
+   210                                                   #            = mat2[idxk, idxl] * mat1[idxj, idxi]
+   211                                                   #不使用外积的方式构造mato2，直接使用转置，因为这时的copy快很多
+   212        32       3288.0    102.8      0.2          mato2 = mato1.transpose()
+   213        32      22005.0    687.7      1.4          mato = mato1.tocsr() + mato2.tocsr()
+   214        32       4071.0    127.2      0.3          mato = mato.multiply(-coeft)
+   215        32      13162.0    411.3      0.8          self.addnewterm(mato)
+   216        32         56.0      1.8      0.0          return mato
