@@ -49,22 +49,20 @@ def extend_rightblock_hamiltonian(ham: Hamiltonian, rbkext: RightBlockExtend):
     if hamdim != rbkext.rblk.dim:
         raise ValueError('ham.basis.dim不等于lbkext.lblk.dim')
     #
-    block_arr = []
-    speye = scipy.sparse.eye(rbkext.stbss.dim)
-    for lidx in rbkext.rblk.iter_idx():
-        row = []
-        block_arr.append(row)
-        for ridx in rbkext.rblk.iter_idx():
-            if ham.mat[lidx, ridx] == 0:
-                #保证维度是正确的
-                if lidx == ridx:
-                    row.append(speye.multiply(0))
-                else:
-                    row.append(None)
-            else:
-                row.append(speye.multiply(ham.mat[lidx, ridx]))
-    mat = scipy.sparse.bmat(block_arr)
+    hammat = ham.mat.todok()\
+        if scipy.sparse.isspmatrix_coo(ham.mat) else ham.mat
     #
+    speye = scipy.sparse.eye(rbkext.stbss.dim).tocsr()
+    #
+    block_arr = numpy.array([[None]*rbkext.rblk.dim]*rbkext.rblk.dim)
+    idxllist, idxrlist = hammat.nonzero()
+    for lidx, ridx in zip(idxllist, idxrlist):
+        block_arr[lidx, ridx] = speye.multiply(hammat[lidx, ridx])
+    for idx in range(rbkext.rblk.dim):
+        if block_arr[idx, idx] is None:
+            block_arr[idx, idx] = scipy.sparse.dok_matrix(
+                (rbkext.stbss.dim, rbkext.stbss.dim))
+    mat = scipy.sparse.bmat(block_arr)
     return Hamiltonian(rbkext, mat)
 
 

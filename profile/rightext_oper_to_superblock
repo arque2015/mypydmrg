@@ -1,0 +1,273 @@
+Wrote profile results to one_dim_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 8.01161 s
+File: /home/mary/mypydmrg/dmrghelpers/superblockhelper.py
+Function: rightext_oper_to_superblock at line 87
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    87                                           @profile
+    88                                           def rightext_oper_to_superblock(
+    89                                                   sbext: SuperBlockExtend,
+    90                                                   oper: BaseOperator
+    91                                               ):
+    92                                               '''把rightblockextend基上面的算符扩展到superblock上\n
+    93                                               Issue#2: 优化算法以提升速度
+    94                                               '''
+    95                                               #原本的算符在|s^n+1, phi^N-(n+1)>上
+    96                                               #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
+    97                                               # O' = I X O，这时的算符会经过phi^n-1和s^n中所有的产生算符
+    98                                               #才能到|s^n+1, phi^N-(n+1)>上
+    99        39        237.0      6.1      0.0      eyedim = sbext.leftblockextend.dim
+   100        78       9138.0    117.2      0.1      opermat = oper.mat.todok()\
+   101        39        201.0      5.2      0.0          if scipy.sparse.isspmatrix_coo(oper.mat) else oper.mat
+   102        39         48.0      1.2      0.0      speye = None
+   103        39        114.0      2.9      0.0      if oper.isferm:
+   104                                                   eyevals = []
+   105                                                   for idx in sbext.leftblockextend.iter_idx():
+   106                                                       _pnum = sbext.leftblockextend.spin_nums[idx]
+   107                                                       _partinum = numpy.sum(_pnum)
+   108                                                       eyevals.append(1. if _partinum % 2 == 0 else -1.)
+   109                                                       speye = scipy.sparse.dia_matrix((eyevals, 0), shape=(eyedim, eyedim))
+   110                                               else:
+   111        39       6336.0    162.5      0.1          speye = scipy.sparse.eye(eyedim)
+   112                                               #
+   113        39         74.0      1.9      0.0      block_arr = []
+   114      2379       3806.0      1.6      0.0      for lidx in sbext.rightblockextend.iter_idx():
+   115      2340       3485.0      1.5      0.0          row = []
+   116      2340       3025.0      1.3      0.0          block_arr.append(row)
+   117    142740     200703.0      1.4      2.5          for ridx in sbext.rightblockextend.iter_idx():
+   118    140400    4755275.0     33.9     59.4              if opermat[lidx, ridx] == 0:
+   119    137202     151660.0      1.1      1.9                  if lidx == ridx:
+   120       598      82902.0    138.6      1.0                      row.append(scipy.sparse.csr_matrix((eyedim, eyedim)))
+   121                                                           else:
+   122    136604     160934.0      1.2      2.0                      row.append(None)
+   123                                                       else:
+   124      3198    1638598.0    512.4     20.5                  row.append(speye.multiply(opermat[lidx, ridx]))
+   125        39     993945.0  25485.8     12.4      mat = scipy.sparse.bmat(block_arr)
+   126        39       1130.0     29.0      0.0      return BaseOperator(oper.siteidx, sbext, oper.isferm, mat, spin=oper.spin)
+
+
+不要循环所有的维度，只需要找非零元素就行了
+
+Wrote profile results to one_dim_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 1.66066 s
+File: /home/mary/mypydmrg/dmrghelpers/superblockhelper.py
+Function: rightext_oper_to_superblock at line 87
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    87                                           @profile
+    88                                           def rightext_oper_to_superblock(
+    89                                                   sbext: SuperBlockExtend,
+    90                                                   oper: BaseOperator
+    91                                               ):
+    92                                               '''把rightblockextend基上面的算符扩展到superblock上\n
+    93                                               Issue#2: 优化算法以提升速度
+    94                                               '''
+    95                                               #原本的算符在|s^n+1, phi^N-(n+1)>上
+    96                                               #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
+    97                                               # O' = I X O，这时的算符会经过phi^n-1和s^n中所有的产生算符
+    98                                               #才能到|s^n+1, phi^N-(n+1)>上
+    99        39        194.0      5.0      0.0      eyedim = sbext.leftblockextend.dim
+   100        78       7160.0     91.8      0.4      opermat = oper.mat.todok()\
+   101        39        165.0      4.2      0.0          if scipy.sparse.isspmatrix_coo(oper.mat) else oper.mat
+   102        39         48.0      1.2      0.0      speye = None
+   103        39         97.0      2.5      0.0      if oper.isferm:
+   104                                                   eyevals = []
+   105                                                   for idx in sbext.leftblockextend.iter_idx():
+   106                                                       _pnum = sbext.leftblockextend.spin_nums[idx]
+   107                                                       _partinum = numpy.sum(_pnum)
+   108                                                       eyevals.append(1. if _partinum % 2 == 0 else -1.)
+   109                                                       speye = scipy.sparse.dia_matrix((eyevals, 0), shape=(eyedim, eyedim))
+   110                                               else:
+   111        39       6466.0    165.8      0.4          speye = scipy.sparse.eye(eyedim)
+   112        39      15998.0    410.2      1.0      speye = speye.tocsr()
+   113                                               #
+   114        39       8838.0    226.6      0.5      block_arr = numpy.array([[None]*sbext.rightblockextend.dim]*sbext.rightblockextend.dim)
+   115        39       8667.0    222.2      0.5      idxllist, idxrlist = opermat.nonzero()
+   116      3237       8696.0      2.7      0.5      for lidx, ridx in zip(idxllist, idxrlist):
+   117      3198     540169.0    168.9     32.5          block_arr[lidx, ridx] = speye.multiply(opermat[lidx, ridx])
+   118      2379       2826.0      1.2      0.2      for idx in range(sbext.rightblockextend.dim):
+   119      2340       3185.0      1.4      0.2          if block_arr[idx, idx] is None:
+   120       598      18153.0     30.4      1.1              block_arr[idx, idx] = scipy.sparse.dok_matrix((eyedim, eyedim))
+   121        39    1038815.0  26636.3     62.6      mat = scipy.sparse.bmat(block_arr)
+   122        39       1188.0     30.5      0.1      return BaseOperator(oper.siteidx, sbext, oper.isferm, mat, spin=oper.spin)
+
+同理修改了rightext_hamiltonian_to_superblock, extend_rightblock_hamiltonian，rightblock_extend_oper
+leftsite_extend_oper没有修改，因为维度就是4*4不是很大
+
+Wrote profile results to one_dim_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 3.93274 s
+File: /home/mary/mypydmrg/dmrghelpers/superblockhelper.py
+Function: rightext_hamiltonian_to_superblock at line 54
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    54                                           @profile
+    55                                           def rightext_hamiltonian_to_superblock(
+    56                                                   sbext: SuperBlockExtend,
+    57                                                   ham: Hamiltonian
+    58                                               ):
+    59                                               '''把rightblockextend基上面的哈密顿量扩展到superblock上\n
+    60                                               Issue#2: 优化算法以提升速度
+    61                                               '''
+    62                                               #原本的哈密顿量在|s^n+1, phi^N-(n+1)>上
+    63                                               #现在要弄到 |phi^n-1, s^n, s^n+1, phi^N-(n+1)>上
+    64                                               # H' = I X H，由于哈密顿量里面都是算符的二次项，而且right中的
+    65                                               #编号都比左边要大，所以不会产生反对易的符号
+    66         8         47.0      5.9      0.0      eyedim = sbext.leftblockextend.dim
+    67        16         14.0      0.9      0.0      hammat = ham.mat.todok()\
+    68        16         51.0      3.2      0.0          if scipy.sparse.isspmatrix_coo(ham.mat) else ham.mat
+    69                                               #
+    70         8         12.0      1.5      0.0      block_arr = []
+    71         8       4638.0    579.8      0.1      speye = scipy.sparse.eye(eyedim).tocsr()
+    72       448        676.0      1.5      0.0      for lidx in sbext.rightblockextend.iter_idx():
+    73       440        674.0      1.5      0.0          row = []
+    74       440        570.0      1.3      0.0          block_arr.append(row)
+    75     29464      38974.0      1.3      1.0          for ridx in sbext.rightblockextend.iter_idx():
+    76                                                       #每一个right上面的数值现在都是一个单位矩阵
+    77     29024    1310431.0     45.1     33.3              if hammat[lidx, ridx] == 0:
+    78     26924      27275.0      1.0      0.7                  if lidx == ridx:
+    79        60       8129.0    135.5      0.2                      row.append(speye.multiply(0))
+    80                                                           else:
+    81     26864      29337.0      1.1      0.7                      row.append(None)
+    82                                                       else:
+    83      2100     355447.0    169.3      9.0                  row.append(speye.multiply(hammat[lidx, ridx]))
+    84         8     526819.0  65852.4     13.4      mat = scipy.sparse.bmat(block_arr)
+    85                                               #
+    86        16       9820.0    613.8      0.2      block_arr = numpy.array([[None]*sbext.rightblockextend.dim]\
+    87         8         13.0      1.6      0.0          *sbext.rightblockextend.dim)
+    88         8       2352.0    294.0      0.1      idxllist, idxrlist = hammat.nonzero()
+    89      2108       5019.0      2.4      0.1      for lidx, ridx in zip(idxllist, idxrlist):
+    90      2100     346352.0    164.9      8.8          block_arr[lidx, ridx] = speye.multiply(hammat[lidx, ridx])
+    91       448        444.0      1.0      0.0      for idx in range(sbext.rightblockextend.dim):
+    92       440        505.0      1.1      0.0          if block_arr[idx, idx] is None:
+    93        60       1729.0     28.8      0.0              block_arr[idx, idx] = scipy.sparse.dok_matrix((eyedim, eyedim))
+    94         8     513025.0  64128.1     13.0      mat2 = scipy.sparse.bmat(block_arr)
+    95         8       7510.0    938.8      0.2      print(mat.count_nonzero(), mat2.count_nonzero())
+    96         8     742619.0  92827.4     18.9      assert numpy.allclose(mat.toarray(), mat.toarray())
+    97         8        259.0     32.4      0.0      return Hamiltonian(sbext, mat)
+
+
+Wrote profile results to one_dim_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 0.202056 s
+File: /home/mary/mypydmrg/dmrghelpers/hamhelper.py
+Function: extend_rightblock_hamiltonian at line 45
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    45                                           @profile
+    46                                           def extend_rightblock_hamiltonian(ham: Hamiltonian, rbkext: RightBlockExtend):
+    47                                               '''把哈密顿量扩展到更大的基上'''
+    48         5         27.0      5.4      0.0      hamdim = ham.basis.dim
+    49         5         18.0      3.6      0.0      if hamdim != rbkext.rblk.dim:
+    50                                                   raise ValueError('ham.basis.dim不等于lbkext.lblk.dim')
+    51                                               #
+    52        10          7.0      0.7      0.0      hammat = ham.mat.todok()\
+    53        10         30.0      3.0      0.0          if scipy.sparse.isspmatrix_coo(ham.mat) else ham.mat
+    54                                               #
+    55         5       2746.0    549.2      1.4      speye = scipy.sparse.eye(rbkext.stbss.dim).tocsr()
+    56         5         11.0      2.2      0.0      block_arr = []
+    57        81        150.0      1.9      0.1      for lidx in rbkext.rblk.iter_idx():
+    58        76        143.0      1.9      0.1          row = []
+    59        76         92.0      1.2      0.0          block_arr.append(row)
+    60      1424       2172.0      1.5      1.1          for ridx in rbkext.rblk.iter_idx():
+    61      1348      62183.0     46.1     30.8              if hammat[lidx, ridx] == 0:
+    62                                                           #保证维度是正确的
+    63      1196       1186.0      1.0      0.6                  if lidx == ridx:
+    64        12       1488.0    124.0      0.7                      row.append(speye.multiply(0))
+    65                                                           else:
+    66      1184       1380.0      1.2      0.7                      row.append(None)
+    67                                                       else:
+    68       152      25934.0    170.6     12.8                  row.append(speye.multiply(hammat[lidx, ridx]))
+    69         5      39489.0   7897.8     19.5      mat = scipy.sparse.bmat(block_arr)
+    70                                               #
+    71         5        704.0    140.8      0.3      block_arr = numpy.array([[None]*rbkext.rblk.dim]*rbkext.rblk.dim)
+    72         5        605.0    121.0      0.3      idxllist, idxrlist = hammat.nonzero()
+    73       157        360.0      2.3      0.2      for lidx, ridx in zip(idxllist, idxrlist):
+    74       152      23579.0    155.1     11.7          block_arr[lidx, ridx] = speye.multiply(hammat[lidx, ridx])
+    75        81         97.0      1.2      0.0      for idx in range(rbkext.rblk.dim):
+    76        76         87.0      1.1      0.0          if block_arr[idx, idx] is None:
+    77        24        371.0     15.5      0.2              block_arr[idx, idx] = scipy.sparse.dok_matrix(
+    78        12         37.0      3.1      0.0                  (rbkext.stbss.dim, rbkext.stbss.dim))
+    79         5      37423.0   7484.6     18.5      mat2 = scipy.sparse.bmat(block_arr)
+    80         5        874.0    174.8      0.4      assert numpy.allclose(mat.toarray(), mat2.toarray())
+    81         5        800.0    160.0      0.4      print(mat.count_nonzero(), mat2.count_nonzero())
+    82         5         63.0     12.6      0.0      return Hamiltonian(rbkext, mat)
+
+
+Wrote profile results to one_dim_hubbard.py.lprof
+Timer unit: 1e-06 s
+
+Total time: 0.893501 s
+File: /home/mary/mypydmrg/dmrghelpers/operhelper.py
+Function: rightblock_extend_oper at line 205
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+   205                                           @profile
+   206                                           def rightblock_extend_oper(
+   207                                                   rightext: RightBlockExtend,
+   208                                                   oper: BaseOperator
+   209                                               ):
+   210                                               '''把rightblock.rblk下的算符扩展到
+   211                                               rightblockextend上面
+   212                                               Issue#3：优化速度
+   213                                               '''
+   214        21        105.0      5.0      0.0      opdim = oper.basis.dim
+   215        21         80.0      3.8      0.0      if rightext.rblk.dim != opdim:
+   216                                                   raise ValueError('oper.basis.dim和RightBlockExtend.rblk.dim对应不上')
+   217        42         59.0      1.4      0.0      opermat = oper.mat.todok()\
+   218        42        123.0      2.9      0.0          if scipy.sparse.isspmatrix_coo(oper.mat) else oper.mat
+   219                                               #需要处理反对易的符号
+   220                                               #|A_1,A_2,..A_n> = C_1C_2..C_n|0>
+   221                                               #在Cm|phi^n_beta> = |phi^n_beta'>的情况下
+   222                                               #Cm|s^n-1,phi^n_beta> = -C^n-1Cm|0, phi^n_beta>
+   223                                               #所以在扩展rightblock中的算符的时候，要看n-1上面有几个粒子
+   224        21         82.0      3.9      0.0      eyedim = rightext.stbss.dim
+   225        21         24.0      1.1      0.0      speye = None
+   226        21         43.0      2.0      0.0      if oper.isferm:
+   227                                                   #如果是反对易的，统计block中的算符数目
+   228        18         30.0      1.7      0.0          eyevals = []
+   229        90        277.0      3.1      0.0          for idx in rightext.stbss.iter_idx():
+   230        72        225.0      3.1      0.0              _pnum = rightext.stbss.partinum[idx]
+   231        72       1099.0     15.3      0.1              _partinum = numpy.sum(_pnum)
+   232        72        276.0      3.8      0.0              eyevals.append(1.0 if _partinum % 2 == 0 else -1.0)
+   233        18       2868.0    159.3      0.3          speye = scipy.sparse.dia_matrix((eyevals, 0), shape=(eyedim, eyedim))
+   234                                               else:
+   235         3        376.0    125.3      0.0          speye = scipy.sparse.eye(eyedim)
+   236        21       8188.0    389.9      0.9      speye = speye.tocsr()
+   237                                               #
+   238        21         47.0      2.2      0.0      block_arr = []
+   239       351        734.0      2.1      0.1      for lidx in rightext.rblk.iter_idx():
+   240       330        558.0      1.7      0.1          row = []
+   241       330        502.0      1.5      0.1          block_arr.append(row)
+   242      6156      11549.0      1.9      1.3          for ridx in rightext.rblk.iter_idx():
+   243      5826     283499.0     48.7     31.7              if opermat[lidx, ridx] == 0:
+   244      5334       7021.0      1.3      0.8                  if lidx == ridx:
+   245       302      11413.0     37.8      1.3                      row.append(scipy.sparse.dok_matrix((eyedim, eyedim)))
+   246                                                           else:
+   247      5032       7160.0      1.4      0.8                      row.append(None)
+   248                                                       else:
+   249       492      96430.0    196.0     10.8                  row.append(speye.multiply(opermat[lidx, ridx]))
+   250        21     180368.0   8589.0     20.2      mat = scipy.sparse.bmat(block_arr)
+   251                                               #
+   252        21       3205.0    152.6      0.4      block_arr = numpy.array([[None]*rightext.rblk.dim]*rightext.rblk.dim)
+   253        21       2826.0    134.6      0.3      idxllist, idxrlist = opermat.nonzero()
+   254       513       1419.0      2.8      0.2      for lidx, ridx in zip(idxllist, idxrlist):
+   255       492      79662.0    161.9      8.9          block_arr[lidx, ridx] = speye.multiply(opermat[lidx, ridx])
+   256       351        569.0      1.6      0.1      for idx in range(rightext.rblk.dim):
+   257       330        494.0      1.5      0.1          if block_arr[idx, idx] is None:
+   258       302       8835.0     29.3      1.0              block_arr[idx, idx] = scipy.sparse.dok_matrix((eyedim, eyedim))
+   259        21     174409.0   8305.2     19.5      mat2 = scipy.sparse.bmat(block_arr)
+   260        21       3399.0    161.9      0.4      print(mat.count_nonzero(), mat2.count_nonzero())
+   261        21       4774.0    227.3      0.5      assert numpy.allclose(mat.toarray(), mat2.toarray())
+   262        21        773.0     36.8      0.1      return BaseOperator(oper.siteidx, rightext, oper.isferm, mat, spin=oper.spin)
