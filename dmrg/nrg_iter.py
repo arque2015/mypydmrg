@@ -4,6 +4,7 @@
 
 from typing import List, Tuple
 import numpy
+import scipy.sparse
 from fermionic.baseop import Hamiltonian
 from fermionic.block import LeftBlockExtend, LeftBlock
 from dmrghelpers.blockhelper import extend_leftblock, update_to_leftblock
@@ -146,7 +147,7 @@ def get_phival_from_hamleft(
     #查看left1ext中粒子数相同的block
     #自旋上或者下的粒子可以有0到block_len个
     maxnum = leftext.block_len + 1
-    eigpairs = {}
+    speigpairs = {}
     _tot_vecs = 0
     #限制sector的list
     sector_idx_list = None if restrict_sector is None\
@@ -168,35 +169,35 @@ def get_phival_from_hamleft(
             #从哈密顿量中抽出相同粒子数组成的block
             blockmat = hamleft.get_block(sidxlist)
             #对角化这个sector的哈密顿量，哈密顿量是不会改变自旋上下的数目的，可以块对角化
-            eigvals, eigvecs = numpy.linalg.eigh(blockmat)
+            eigvals, eigvecs = numpy.linalg.eigh(blockmat.toarray())
             #numpy的结果中，eigvecs的每一列是一个本正态
             for idx, eva in enumerate(eigvals, 0):
                 #phival中需要的是再整个LeftBlockExtend基上面的
                 #扩展过去
-                extend_vec = numpy.zeros(leftext.dim)
+                spextend_vec = scipy.sparse.dok_matrix((1, leftext.dim))
                 for idx2, sidx in enumerate(sidxlist, 0):
-                    extend_vec[sidx] = eigvecs[idx2, idx]
-                if eva in eigpairs:
-                    eigpairs[eva].append(extend_vec)
+                    spextend_vec[0, sidx] = eigvecs[idx2, idx]
+                if eva in speigpairs:
+                    speigpairs[eva].append(spextend_vec)
                 else:
-                    eigpairs[eva] = [extend_vec]
+                    speigpairs[eva] = [spextend_vec]
     _maxkeep = maxkeep
     if maxkeep > _tot_vecs:
         _maxkeep = _tot_vecs
     #下一个block的分量数量就是_maxkeep个
-    phival = numpy.zeros([_maxkeep, leftext.dim])
+    spphival = scipy.sparse.dok_matrix((_maxkeep, leftext.dim))
     #phival中每一行应该是一个本正值
     #给本正值排序，从小到大
-    eigvals_sorted = numpy.sort(list(eigpairs.keys()))
-    #print(eigvals_sorted[0])
-    phirow = 0
-    for eva in eigvals_sorted:
-        for eve in eigpairs[eva]:
-            phival[phirow, :] = eve
-            phirow += 1
-            if phirow >= _maxkeep:
+    speigvals_sorted = numpy.sort(list(speigpairs.keys()))
+    spphirow = 0
+    for eva in speigvals_sorted:
+        for eve in speigpairs[eva]:
+            spphival[spphirow, :] = eve
+            spphirow += 1
+            if spphirow >= _maxkeep:
                 break
-        if phirow >= _maxkeep:
+        if spphirow >= _maxkeep:
             break
+    spphival = spphival.tocsr()
     #利用phival更新|phi^2>
-    return phival
+    return spphival

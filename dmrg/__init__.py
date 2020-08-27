@@ -196,7 +196,7 @@ def standard_dmrg(
         #print(dconf)
     #整个sweep结束以后的一些工作
     #算一下几个位置的关联函数
-    for idx in range(1, model.size+1):
+    for idx in range(1, len(measures)+1):
         #leftext最大的格子在phi_idx+1
         #注意这里有一个问题，最后一个superblock是由3-4-5-6构成的
         #但是并没有求出这个时候的基态，因为不需要更新leftblock[4]这个基
@@ -205,6 +205,6 @@ def standard_dmrg(
         val = measure_oper_of_site(dconf, 'sz', idx)
         print('Sz_%d' % idx, val)
         #关联
-        for idx2 in range(1, model.size+1):
+        for idx2 in range(1, len(measures)+1):
             val = measure_corr_of_2sites(dconf, 'sz', idx, idx2)
             print('Sz_%dSz_%d' % (idx, idx2), val)

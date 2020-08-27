@@ -9,6 +9,7 @@
 
 from typing import List, Tuple
 import numpy
+import scipy.sparse.linalg
 from dmrghelpers.blockhelper import extend_rightblock, update_to_rightblock
 from dmrghelpers.hamhelper import extend_rightblock_hamiltonian
 from dmrghelpers.hamhelper import update_rightblockextend_hamiltonian
@@ -43,7 +44,8 @@ def rightblockextend_to_next(
         conf.model, leftstorage, rightstorage, spin_sector, extrabonds
     )
     #将基态解出来
-    eigvals, eigvecs = numpy.linalg.eigh(mat)
+    eigvals, eigvecs = scipy.sparse.linalg.eigsh(mat, k=1, which='SA')
+    #numpy.linalg.eigh(mat)
     ground = eigvecs[:, 0]
     ground_erg = eigvals[0]
     #把基态的信息保留下来
