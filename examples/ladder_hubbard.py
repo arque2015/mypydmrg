@@ -7,7 +7,7 @@ from dmrg import standard_dmrg
 def main():
     '''开始计算'''
     #晶格的配置
-    lenx = 2
+    lenx = 4
     modelsize = 3 * lenx
     spin_sector = (modelsize // 2, modelsize // 2)
     hubbard = HubbardLadder(lenx, 4.0, 0.05)
@@ -33,10 +33,10 @@ def main():
     #left sweep的时候phi_idx从2...到modelsize - 3
     #这个phi_idx是ext的编号，所以共有modelsize-4次从ext升级到下一个ext
     #的过程，这个过程中，会从ext升级到block，保存多少个基，由dkeep指定
-    dkeep = [20 + modelsize*idx for idx in range(modelsize-4)]
+    dkeep = [100 + modelsize*idx*0 for idx in range(modelsize-4)]
     #开始dmrg
     standard_dmrg(
-        hubbard, spin_sector, 15, dkeep, measures
+        hubbard, spin_sector, 100, dkeep, measures
     )
 
 

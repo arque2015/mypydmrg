@@ -29,10 +29,9 @@ class BaseModel(object):
         '''U'''
         return self._coef_u
 
-    @property
-    def coef_mu(self):
+    def get_coef_mu(self, idx):
         '''Mu'''
-        return self._coef_mu
+        return self._coef_mu[idx]
 
     def get_site_bonds(self, stidx):
         '''获得一个site的所有bond\n

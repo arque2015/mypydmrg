@@ -19,3 +19,6 @@ class HubbardChain(BaseModel):
         else:
             self._bonds[1] = [2]
             self._bonds[length] = [length-1]
+        self._coef_mu = {}
+        for _idx in range(1, length+1):
+            self._coef_mu[_idx] = 0.0

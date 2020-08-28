@@ -27,10 +27,10 @@ def main():
     spin_sector = (modelsize // 2, modelsize // 2)
     measures = [('nu', 1), ('nu', 2), ('nu', 3), ('nu', 4), ('nu', 5), ('nu', 6)]
     #DMRG时的maxkeep
-    dkeep = [15 + modelsize*idx for idx in range(modelsize-4)]
+    dkeep = [100 + modelsize*idx for idx in range(modelsize-4)]
     #开始dmrg
     standard_dmrg(
-        hubbard, spin_sector, 15, dkeep, measures
+        hubbard, spin_sector, 100, dkeep, measures
     )
     #内存使用状况
     print('峰值内存 ', tracemalloc.get_traced_memory()[1])

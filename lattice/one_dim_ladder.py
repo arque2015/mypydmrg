@@ -14,21 +14,24 @@ class HubbardLadder(BaseModel):
     ``````
     一共需要3个t，pbc是需要满足的
     """
-    def __init__(self, lenx, coef_u, alpha):
+    def __init__(self, lenx, coef_u, alpha, coef_mu=0.0):
         super().__init__(list(range(1, 3 * lenx + 1)))
         self._lenx = lenx
         self._coef_u = coef_u
-        self._coef_mu = 1.0
+        self._coef_mu = {}
         self._alpha = alpha
         #先设置竖折的几个bond
         for idx_leg1 in range(lenx):
             #这个是下面一层的格子
             stidx = 3 * idx_leg1 + 1
             self._bonds[stidx] = [stidx + 1, stidx + 2]
+            self._coef_mu[stidx] = coef_mu
             #上面一层的格子
             self._bonds[stidx + 2] = [stidx, stidx + 1]
+            self._coef_mu[stidx + 2] = coef_mu
             #中间一层的格子
             self._bonds[stidx + 1] = [stidx, stidx + 2]
+            self._coef_mu[stidx + 1] = -coef_mu
         #再设置横着的格子
         for idx_leg1 in range(1, lenx-1):
             stidx = 3 * idx_leg1 + 1
@@ -44,7 +47,7 @@ class HubbardLadder(BaseModel):
             self._bonds[1].extend([4, lenx*3-2])
             self._bonds[lenx*3-2].extend([1, lenx*3-5])
             self._bonds[3].extend([6, lenx*3])
-            self._bonds[lenx*3].extend([3, lenx*3-3]) 
+            self._bonds[lenx*3].extend([3, lenx*3-3])
 
 
     def get_t_coef(self, st1, st2):
