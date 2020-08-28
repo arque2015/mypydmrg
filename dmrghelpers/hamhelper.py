@@ -8,6 +8,7 @@ from fermionic.block import LeftBlockExtend, LeftBlock
 from fermionic.block import RightBlockExtend, RightBlock
 from fermionic.baseop import Hamiltonian
 from .operhelper import SINGLE_SITE_INTERACT_U
+from .operhelper import SINGLE_SITE_NUMBER_UP, SINGLE_SITE_NUMBER_DOWN
 
 
 def create_hamiltonian_of_site(basis, coef_u, coef_mu):
@@ -15,7 +16,8 @@ def create_hamiltonian_of_site(basis, coef_u, coef_mu):
     #用稀疏矩阵换掉
     #先不实现mu
     mat = scipy.sparse.csr_matrix(coef_u * SINGLE_SITE_INTERACT_U)
-    mat = mat.tocsr()
+    mat += scipy.sparse.csr_matrix(coef_mu * SINGLE_SITE_NUMBER_UP)
+    mat += scipy.sparse.csr_matrix(coef_mu * SINGLE_SITE_NUMBER_DOWN)
     return Hamiltonian(basis, mat)
 
 

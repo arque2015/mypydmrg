@@ -18,6 +18,7 @@ class HubbardLadder(BaseModel):
         super().__init__(list(range(1, 3 * lenx + 1)))
         self._lenx = lenx
         self._coef_u = coef_u
+        self._coef_mu = 1.0
         self._alpha = alpha
         #先设置竖折的几个bond
         for idx_leg1 in range(lenx):

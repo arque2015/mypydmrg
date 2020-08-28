@@ -29,6 +29,11 @@ class BaseModel(object):
         '''U'''
         return self._coef_u
 
+    @property
+    def coef_mu(self):
+        '''Mu'''
+        return self._coef_mu
+
     def get_site_bonds(self, stidx):
         '''获得一个site的所有bond\n
         继承了BaseModel的类可以重写这个方法来实现想要的厄效果

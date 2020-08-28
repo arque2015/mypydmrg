@@ -28,7 +28,7 @@ def init_first_site(
     #
     left = first_leftblock(model.sites[0])
     #创建第一个格子上的哈密顿量，还有第一个格子的产生算符
-    hamleft = create_hamiltonian_of_site(left.fock_basis, model.coef_u, 0)
+    hamleft = create_hamiltonian_of_site(left.fock_basis, model.coef_u, model.coef_mu)
     cup1 = create_operator_of_site(left.fock_basis, OperFactory.create_spinup())
     cdn1 = create_operator_of_site(left.fock_basis, OperFactory.create_spindown())
     #把现在的结果暂存到dconf
@@ -38,7 +38,7 @@ def init_first_site(
     #
     right = first_rightblock(model.sites[-1])
     #创建最后一个格子上的哈密顿量，还有最后一个格子的产生算符
-    hamright = create_hamiltonian_of_site(right.fock_basis, model.coef_u, 0)
+    hamright = create_hamiltonian_of_site(right.fock_basis, model.coef_u, model.coef_mu)
     cuplast = create_operator_of_site(right.fock_basis, OperFactory.create_spinup())
     cdnlast = create_operator_of_site(right.fock_basis, OperFactory.create_spindown())
     #把右侧的结果也暂存到dconf
@@ -124,6 +124,13 @@ def prepare_rightblockextend(
     newu = create_operator_of_site(rightext.stbss, OperFactory.create_u())
     newu = rightsite_extend_oper(rightext, newu)
     rightham.add_u_term(newu, conf.model.coef_u)
+    #把新的Mu项添加进去
+    newnu = create_operator_of_site(rightext.stbss, OperFactory.create_numup())
+    newnu = rightsite_extend_oper(rightext, newnu)
+    rightham.add_mu_term(newnu, conf.model.coef_mu)
+    newnd = create_operator_of_site(rightext.stbss, OperFactory.create_numdown())
+    newnd = rightsite_extend_oper(rightext, newnd)
+    rightham.add_mu_term(newnd, conf.model.coef_mu)
     #把扩展后的算符存储到rightext[N]上面，用来给以后的观测使用
     #之前的过程并没有调整right_tmp，直接用就可以了
     rightext_stor = conf.get_rightext_storage(phi_idx)

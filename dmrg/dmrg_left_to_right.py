@@ -141,6 +141,13 @@ def leftblockextend_to_next(
     newiu = create_operator_of_site(newleftext.stbss, OperFactory.create_u())
     newiu = leftsite_extend_oper(newleftext, newiu)
     newhamext.add_u_term(newiu, conf.model.coef_u)
+    #把新的格子的Mu项添加进去
+    newnu = create_operator_of_site(newleftext.stbss, OperFactory.create_numup())
+    newnu = leftsite_extend_oper(newleftext, newnu)
+    newhamext.add_mu_term(newnu, conf.model.coef_mu)
+    newnd = create_operator_of_site(newleftext.stbss, OperFactory.create_numdown())
+    newnd = leftsite_extend_oper(newleftext, newnd)
+    newhamext.add_mu_term(newnd, conf.model.coef_mu)
     #保存需要保存的算符
     for extidx in extoper_storage:
         conf.storage_leftext_oper(phi_idx, maintain_dict[extidx][0])

@@ -15,6 +15,7 @@ class DMRGConfig(object):
         self._model = model
         #一些算法控制的参数
         self.nrg_max_keep = nrg_max_keep
+        self.spin_sector = None
         #
         #block上面的算符个哈密顿量是用来向下一次进行递推的
         #临时存储就行了

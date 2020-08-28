@@ -221,6 +221,11 @@ class Hamiltonian(Operator):
             raise ValueError('opu的dim对不上')
         self.addnewterm(coef_u * opu.mat)
 
+    def add_mu_term(self, opmu, coef_mu):
+        '''添加一个mu项'''
+        if opmu.basis.dim != self.basis.dim:
+            raise ValueError('opu的dim对不上')
+        self.addnewterm(coef_mu * opmu.mat)
 
     def get_block(self, idxs):
         '''获得哈密顿量中的一个block

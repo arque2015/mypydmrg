@@ -11,7 +11,7 @@ def main():
     modelsize = 3 * lenx
     spin_sector = (modelsize // 2, modelsize // 2)
     hubbard = HubbardLadder(lenx, 4.0, 0.05)
-    measures = [('sz', 1), ('sz', 2), ('sz', 3), ('sz', 4), ('sz', 5), ('sz', 6)]
+    measures = [('nu', 1), ('nu', 2), ('nu', 3), ('nd', 4), ('nd', 5), ('nd', 6)]
     #ED算基态能量的结果
     #U=0时结果是-12.63841536，U=1时是-11.13668625
     #U=2时结果是-9.78120910，U=4时是-7.52100677

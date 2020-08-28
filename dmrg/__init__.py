@@ -39,6 +39,7 @@ def standard_dmrg(
     meas_tmp = [corpair for corpair in measures\
         if corpair[1] in [model.sites[0], model.sites[-1]]]
     dconf = init_first_site(model, nrg_max_keep, meas_tmp)
+    dconf.spin_sector = spin_sector
     #一共进行多少个sweep
     sweep_num = 2
     #
@@ -196,15 +197,15 @@ def standard_dmrg(
         #print(dconf)
     #整个sweep结束以后的一些工作
     #算一下几个位置的关联函数
-    for idx in range(1, len(measures)+1):
+    for idx in range(0, len(measures)):
         #leftext最大的格子在phi_idx+1
         #注意这里有一个问题，最后一个superblock是由3-4-5-6构成的
         #但是并没有求出这个时候的基态，因为不需要更新leftblock[4]这个基
         #也就是说最后一次是在leftext[2]上计算的，
         #用来升级成leftblock[3]并自动扩展成leftext[3]
-        val = measure_oper_of_site(dconf, 'nu', idx)
-        print('Sz_%d' % idx, val)
+        val = measure_oper_of_site(dconf, measures[idx][0], measures[idx][1])
+        print('%s_%d' % (measures[idx][0], measures[idx][1]), val)
         #关联
-        for idx2 in range(1, len(measures)+1):
-            val = measure_corr_of_2sites(dconf, 'nu', idx, idx2)
-            print('Sz_%dSz_%d' % (idx, idx2), val)
+        #for idx2 in range(1, len(measures)+1):
+        #    val = measure_corr_of_2sites(dconf, 'nu', idx, idx2)
+        #    print('Sz_%dSz_%d' % (idx, idx2), val)
