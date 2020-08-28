@@ -104,7 +104,7 @@ def leftblockextend_to_next(
             #新建一个观测用的算符
             meaop = create_operator_of_site(
                 newleftext.stbss,
-                OperFactory.create_measure(prefix)
+                OperFactory.create_by_name(prefix)
             )
             #扩展到leftext[phi_idx]上
             meaop = leftsite_extend_oper(newleftext, meaop)

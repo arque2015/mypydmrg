@@ -59,7 +59,7 @@ def init_first_site(
             raise ValueError('这个算符不在第一个或最后一个格子')
         measop = create_operator_of_site(
             basis.fock_basis,
-            OperFactory.create_measure(prefix)
+            OperFactory.create_by_name(prefix)
         )
         stor.storage_meas(prefix, measop)
     return conf
@@ -131,7 +131,7 @@ def prepare_rightblockextend(
         if idx == phi_idx - 1:#如果是新加的格子，就新建这个算符
             meaop = create_operator_of_site(
                 rightext.stbss,
-                OperFactory.create_measure(prefix)
+                OperFactory.create_by_name(prefix)
             )
             meaop = rightsite_extend_oper(rightext, meaop)
         else:

@@ -114,7 +114,7 @@ def rightblockextend_to_next(
             #新建一个观测用的算符
             meaop = create_operator_of_site(
                 newrightext.stbss,
-                OperFactory.create_measure(prefix)
+                OperFactory.create_by_name(prefix)
             )
             #扩展到leftext[phi_idx]上
             meaop = rightsite_extend_oper(newrightext, meaop)

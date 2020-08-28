@@ -202,9 +202,9 @@ def standard_dmrg(
         #但是并没有求出这个时候的基态，因为不需要更新leftblock[4]这个基
         #也就是说最后一次是在leftext[2]上计算的，
         #用来升级成leftblock[3]并自动扩展成leftext[3]
-        val = measure_oper_of_site(dconf, 'sz', idx)
+        val = measure_oper_of_site(dconf, 'nu', idx)
         print('Sz_%d' % idx, val)
         #关联
         for idx2 in range(1, len(measures)+1):
-            val = measure_corr_of_2sites(dconf, 'sz', idx, idx2)
+            val = measure_corr_of_2sites(dconf, 'nu', idx, idx2)
             print('Sz_%dSz_%d' % (idx, idx2), val)

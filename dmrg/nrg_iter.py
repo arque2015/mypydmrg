@@ -103,7 +103,7 @@ def leftblock_to_next(
         if meas[1] == phi_idx:#如果是这次新加的格子，就创建一个而不是读取
             meaop = create_operator_of_site(
                 leftext.stbss,
-                OperFactory.create_measure(meas[0])
+                OperFactory.create_by_name(meas[0])
             )
             meaop = leftsite_extend_oper(leftext, meaop)
         else:
