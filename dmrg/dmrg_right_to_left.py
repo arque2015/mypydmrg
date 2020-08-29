@@ -154,12 +154,14 @@ def rightblockextend_to_next(
     newiu = rightsite_extend_oper(newrightext, newiu)
     newhamext.add_u_term(newiu, conf.model.coef_u)
     #把新的格子的Mu项添加进去
-    newnu = create_operator_of_site(newrightext.stbss, OperFactory.create_numup())
-    newnu = rightsite_extend_oper(newrightext, newnu)
-    newhamext.add_mu_term(newnu, conf.model.get_coef_mu(phi_idx-1))
-    newnd = create_operator_of_site(newrightext.stbss, OperFactory.create_numdown())
-    newnd = rightsite_extend_oper(newrightext, newnd)
-    newhamext.add_mu_term(newnd, conf.model.get_coef_mu(phi_idx-1))
+    coef_mu = conf.model.get_coef_mu(phi_idx-1)
+    if coef_mu != 0:
+        newnu = create_operator_of_site(newrightext.stbss, OperFactory.create_numup())
+        newnu = rightsite_extend_oper(newrightext, newnu)
+        newhamext.add_mu_term(newnu, coef_mu)
+        newnd = create_operator_of_site(newrightext.stbss, OperFactory.create_numdown())
+        newnd = rightsite_extend_oper(newrightext, newnd)
+        newhamext.add_mu_term(newnd, coef_mu)
     #保存需要保存的新的ext上面的算符
     for extidx in extoper_storage:
         conf.storage_rightext_oper(phi_idx, maintain_dict[extidx][0])

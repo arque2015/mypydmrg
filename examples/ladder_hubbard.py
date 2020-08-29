@@ -11,7 +11,12 @@ def main():
     modelsize = 3 * lenx
     spin_sector = (modelsize // 2, modelsize // 2)
     hubbard = HubbardLadder(lenx, 4.0, 0.05)
-    measures = [('nu', 1), ('nu', 2), ('nu', 3), ('nd', 4), ('nd', 5), ('nd', 6)]
+    measures = [
+        ('nu', 1), ('nu', 2), ('nu', 3), ('nu', 4), ('nu', 5), ('nu', 6),
+        ('nd', 1), ('nd', 2), ('nd', 3), ('nd', 4), ('nd', 5), ('nd', 6),
+        ('cu', 1), ('cu', 2), ('cu', 3), ('cu', 4), ('cu', 5), ('cu', 6),
+        ('cd', 1), ('cd', 2), ('cd', 3), ('cd', 4), ('cd', 5), ('cd', 6),
+    ]
     #ED算基态能量的结果
     #U=0时结果是-12.63841536，U=1时是-11.13668625
     #U=2时结果是-9.78120910，U=4时是-7.52100677
@@ -33,10 +38,10 @@ def main():
     #left sweep的时候phi_idx从2...到modelsize - 3
     #这个phi_idx是ext的编号，所以共有modelsize-4次从ext升级到下一个ext
     #的过程，这个过程中，会从ext升级到block，保存多少个基，由dkeep指定
-    dkeep = [100 + modelsize*idx*0 for idx in range(modelsize-4)]
+    dkeep = [175 + modelsize*idx*0 for idx in range(modelsize-4)]
     #开始dmrg
     standard_dmrg(
-        hubbard, spin_sector, 100, dkeep, measures
+        hubbard, spin_sector, 175, dkeep, measures
     )
 
 

@@ -3,7 +3,6 @@
 
 from typing import List, Tuple
 from lattice import BaseModel
-from fermionic.block import RightBlock
 from dmrghelpers.blockhelper import first_leftblock, first_rightblock
 from dmrghelpers.blockhelper import extend_rightblock
 from dmrghelpers.hamhelper import create_hamiltonian_of_site
@@ -133,12 +132,14 @@ def prepare_rightblockextend(
     newu = rightsite_extend_oper(rightext, newu)
     rightham.add_u_term(newu, conf.model.coef_u)
     #把新的Mu项添加进去
-    newnu = create_operator_of_site(rightext.stbss, OperFactory.create_numup())
-    newnu = rightsite_extend_oper(rightext, newnu)
-    rightham.add_mu_term(newnu, conf.model.get_coef_mu(phi_idx-1))
-    newnd = create_operator_of_site(rightext.stbss, OperFactory.create_numdown())
-    newnd = rightsite_extend_oper(rightext, newnd)
-    rightham.add_mu_term(newnd, conf.model.get_coef_mu(phi_idx-1))
+    coef_mu = conf.model.get_coef_mu(phi_idx-1)
+    if coef_mu != 0:
+        newnu = create_operator_of_site(rightext.stbss, OperFactory.create_numup())
+        newnu = rightsite_extend_oper(rightext, newnu)
+        rightham.add_mu_term(newnu, coef_mu)
+        newnd = create_operator_of_site(rightext.stbss, OperFactory.create_numdown())
+        newnd = rightsite_extend_oper(rightext, newnd)
+        rightham.add_mu_term(newnd, coef_mu)
     #把扩展后的算符存储到rightext[N]上面，用来给以后的观测使用
     #之前的过程并没有调整right_tmp，直接用就可以了
     rightext_stor = conf.get_rightext_storage(phi_idx)

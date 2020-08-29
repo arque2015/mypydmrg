@@ -31,7 +31,7 @@ class HubbardLadder(BaseModel):
             self._coef_mu[stidx + 2] = coef_mu
             #中间一层的格子
             self._bonds[stidx + 1] = [stidx, stidx + 2]
-            self._coef_mu[stidx + 1] = -coef_mu
+            self._coef_mu[stidx + 1] = coef_mu
         #再设置横着的格子
         for idx_leg1 in range(1, lenx-1):
             stidx = 3 * idx_leg1 + 1

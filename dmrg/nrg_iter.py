@@ -89,12 +89,14 @@ def leftblock_to_next(
     newiu = leftsite_extend_oper(leftext, newiu)
     hamleft.add_u_term(newiu, conf.model.coef_u)
     #构建Mu项并扩展，然后添加到哈密顿量
-    newnu = create_operator_of_site(leftext.stbss, OperFactory.create_numup())
-    newnu = leftsite_extend_oper(leftext, newnu)
-    hamleft.add_mu_term(newnu, conf.model.get_coef_mu(phi_idx))
-    newnd = create_operator_of_site(leftext.stbss, OperFactory.create_numdown())
-    newnd = leftsite_extend_oper(leftext, newnd)
-    hamleft.add_mu_term(newnd, conf.model.get_coef_mu(phi_idx))
+    coef_mu = conf.model.get_coef_mu(phi_idx)
+    if coef_mu != 0:
+        newnu = create_operator_of_site(leftext.stbss, OperFactory.create_numup())
+        newnu = leftsite_extend_oper(leftext, newnu)
+        hamleft.add_mu_term(newnu, coef_mu)
+        newnd = create_operator_of_site(leftext.stbss, OperFactory.create_numdown())
+        newnd = leftsite_extend_oper(leftext, newnd)
+        hamleft.add_mu_term(newnd, coef_mu)
     ### 开始从leftext升级到下一个left
     #调用get_phival_from_hamleft，得到能量本正值
     #获得相应的自旋sector限制
