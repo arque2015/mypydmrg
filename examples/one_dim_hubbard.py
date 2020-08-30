@@ -25,12 +25,17 @@ def main():
     modelsize = 6
     hubbard = HubbardChain(modelsize, 4.0)
     spin_sector = (modelsize // 2, modelsize // 2)
-    measures = [('nu', 1), ('nu', 2), ('nu', 3), ('nu', 4), ('nu', 5), ('nu', 6)]
+    measures = [
+        ('nu', 1), ('nu', 2), ('nu', 3), ('nu', 4), ('nu', 5), ('nu', 6),
+        ('nd', 1), ('nd', 2), ('nd', 3), ('nd', 4), ('nd', 5), ('nd', 6),
+        ('cu', 1), ('cu', 2), ('cu', 3), ('cu', 4), ('cu', 5), ('cu', 6),
+        ('cd', 1), ('cd', 2), ('cd', 3), ('cd', 4), ('cd', 5), ('cd', 6),
+    ]
     #DMRG时的maxkeep
-    dkeep = [100 + modelsize*idx for idx in range(modelsize-4)]
+    dkeep = [30 + modelsize*idx for idx in range(modelsize-4)]
     #开始dmrg
     standard_dmrg(
-        hubbard, spin_sector, 100, dkeep, measures
+        hubbard, spin_sector, 30, dkeep, measures
     )
     #内存使用状况
     print('峰值内存 ', tracemalloc.get_traced_memory()[1])

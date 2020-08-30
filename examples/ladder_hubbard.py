@@ -7,7 +7,7 @@ from dmrg import standard_dmrg
 def main():
     '''开始计算'''
     #晶格的配置
-    lenx = 4
+    lenx = 2
     modelsize = 3 * lenx
     spin_sector = (modelsize // 2, modelsize // 2)
     hubbard = HubbardLadder(lenx, 4.0, 0.05)
