@@ -168,7 +168,7 @@ class Hamiltonian(Operator):
             diavals.append(1.0 if _parti_num % 2 == 0 else -1.0)
         fsign = scipy.sparse.dia_matrix((diavals, 0), op1.mat.shape)
         mat1 = op1.mat * fsign
-        mat1 = mat1.tocsr()
+        mat1 = mat1.multiply(-coeft).tocsr()
         mat2 = op2.mat.tocsr()
         #最后reshape成结果的形状，这个时候是先遍历ld1和ld2的，所以
         #和需要的（ld1*rd1, ld2*rd2）是一样的
@@ -192,13 +192,14 @@ class Hamiltonian(Operator):
         block_arr = numpy.array([[None]*rightext.dim]*rightext.dim)
         idxr2list, idxr1list = mat2.nonzero()#因为要做transpose，2，1翻过来
         for idxr1, idxr2 in zip(idxr1list, idxr2list):#range(rightext.dim):
-            block_arr[idxr1, idxr2] = \
-                mato1f[:, idxr1*rightext.dim + idxr2]\
+            block_ent = mato1f[:, idxr1*rightext.dim + idxr2]\
                     .reshape((leftext.dim, leftext.dim))
+            block_arr[idxr1, idxr2] = block_ent
+            block_arr[idxr2, idxr1] = block_ent.transpose()
         for idxr in range(rightext.dim):
             if block_arr[idxr, idxr] is None:
                 block_arr[idxr, idxr] = scipy.sparse.dok_matrix((leftext.dim, leftext.dim))
-        mato1 = scipy.sparse.bmat(block_arr)
+        mato = scipy.sparse.bmat(block_arr)
         #assert numpy.allclose(mato1b.toarray(), mato1.toarray())
         #再构造mato2
         #mato2 = scipy.sparse.dok_matrix((_dim, _dim))
@@ -209,9 +210,6 @@ class Hamiltonian(Operator):
         #        mato2[idxk *leftext.dim + idxi, idxl * leftext.dim + idxj]\
         #            = mat2[idxk, idxl] * mat1[idxj, idxi]
         #不使用外积的方式构造mato2，直接使用转置，因为这时的copy快很多
-        mato2 = mato1.transpose()
-        mato = mato1.tocsr() + mato2.tocsr()
-        mato = mato.multiply(-coeft)
         self.addnewterm(mato)
         return mato
 
@@ -221,6 +219,11 @@ class Hamiltonian(Operator):
             raise ValueError('opu的dim对不上')
         self.addnewterm(coef_u * opu.mat)
 
+    def add_mu_term(self, opmu, coef_mu):
+        '''添加一个mu项'''
+        if opmu.basis.dim != self.basis.dim:
+            raise ValueError('opu的dim对不上')
+        self.addnewterm(coef_mu * opmu.mat)
 
     def get_block(self, idxs):
         '''获得哈密顿量中的一个block

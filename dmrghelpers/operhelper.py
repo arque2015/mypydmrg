@@ -39,27 +39,24 @@ SINGLE_SITE_INTERACT_U = numpy.array(
     ]
 )
 
-SINGLE_SITE_SPIN_Z = numpy.array(
+SINGLE_SITE_NUMBER_UP = numpy.array(
     [
         [0., 0., 0., 0.],
         [0., 1., 0., 0.],
-        [0., 0., -1., 0.],
-        [0., 0., 0., 0.]
+        [0., 0., 0., 0.],
+        [0., 0., 0., 1.]
     ]
-) 
+)
 
-#SINGLE_SITE_NUMBER_SPINUP = numpy.array(
-#    [
-#        [0., 0., 0., 0.],
-#        [0., 1., 0., 0.],
-#        [0., 0., 0., 0.],
-#        [0., 0., 0., 1.]
-#    ]
-#)
+SINGLE_SITE_NUMBER_DOWN = numpy.array(
+    [
+        [0., 0., 0., 0.],
+        [0., 0., 0., 0.],
+        [0., 0., 1., 0.],
+        [0., 0., 0., 1.]
+    ]
+)
 
-MEASOP_DICT = {
-    'sz': SINGLE_SITE_SPIN_Z
-}
 
 OPERTUP = namedtuple('opertup', ['isferm', 'spin', 'mat'])
 class OperFactory(object):
@@ -92,21 +89,35 @@ class OperFactory(object):
         )
 
     @staticmethod
-    def create_measure(prefix):
-        '''创建一个观测用的算符'''
+    def create_numup():
+        '''粒子数向上的算符'''
         return OPERTUP(
             isferm=False,
-            spin=0,
-            mat=MEASOP_DICT[prefix]
+            spin=1,
+            mat=SINGLE_SITE_NUMBER_UP
         )
-    #@staticmethod
-    #def number_spinup():
-    #    '''自旋向上的粒子数量'''
-    #    return OPERTUP(
-    #        isferm=False,
-    #        spinsector=1,
-    #        mat=SINGLE_SITE_NUMBER_SPINUP
-    #    )
+
+    @staticmethod
+    def create_numdown():
+        '''粒子数向下的算符'''
+        return OPERTUP(
+            isferm=False,
+            spin=-1,
+            mat=SINGLE_SITE_NUMBER_DOWN
+        )
+
+    @staticmethod
+    def create_by_name(name):
+        '''通过名字产生opertup'''
+        dic = {
+            'cu': OperFactory.create_spinup,
+            'cd': OperFactory.create_spindown,
+            'nu': OperFactory.create_numup,
+            'nd': OperFactory.create_numdown,
+            'u': OperFactory.create_u
+        }
+        return dic[name]()
+
 
 def create_operator_of_site(basis: SiteBasis, tup: OPERTUP):
     '''从一个site创建，spin = 1代表向上，spin=-1代表向下
