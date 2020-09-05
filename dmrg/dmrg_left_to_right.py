@@ -5,7 +5,7 @@
 
 from typing import List, Tuple
 import numpy
-import scipy.sparse.linalg
+from dmrghelpers.superblockhelper2 import lanczos
 from dmrghelpers.blockhelper import update_to_leftblock, extend_leftblock
 from dmrghelpers.hamhelper import update_leftblockextend_hamiltonian, extend_leftblock_hamiltonian
 from dmrghelpers.operhelper import update_leftblockextend_oper
@@ -33,14 +33,13 @@ def leftblockextend_to_next(
     leftstorage = conf.get_leftext_storage(phi_idx-1)
     rightstorage = conf.get_rightext_storage(phi_idx+2)
     #首先要把superblock拼出来
-    sector_idxs, mat, superext = get_superblock_ham(
+    sector_idxs, superham, superext = get_superblock_ham(
         conf.model, leftstorage, rightstorage, spin_sector, extrabonds
     )
     #把基态解出来
-    eigvals, eigvecs = scipy.sparse.linalg.eigsh(mat, k=1, which='SA')
+    ground_erg, ground = lanczos(superham, sector_idxs)
+    #scipy.sparse.linalg.eigsh(mat, k=1, which='SA')
     #numpy.linalg.eigh(mat)
-    ground = eigvecs[:, 0]
-    ground_erg = eigvals[0]
     #把基态的信息保留下来
     conf.ground_vec = ground
     conf.ground_secidx = sector_idxs
