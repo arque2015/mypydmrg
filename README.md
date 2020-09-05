@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
 ### 备忘
 
-+ [left/right-block的递推](https://github.com/maryprimary/mypydmrg/wiki/left_right_block#block的递推)
++ [left/right-block的递推](https://github.com/maryprimary/mypydmrg/wiki/left_right_block#block的递推_old)  这个分支中使用的是较早的算法的实现  
 
 + [调用结构](https://github.com/maryprimary/mypydmrg/wiki/program_struct#调用结构)
 
