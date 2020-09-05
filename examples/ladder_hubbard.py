@@ -38,10 +38,10 @@ def main():
     #left sweep的时候phi_idx从2...到modelsize - 3
     #这个phi_idx是ext的编号，所以共有modelsize-4次从ext升级到下一个ext
     #的过程，这个过程中，会从ext升级到block，保存多少个基，由dkeep指定
-    dkeep = [175 + modelsize*idx*0 for idx in range(modelsize-4)]
+    dkeep = [20 + modelsize*idx*0 for idx in range(modelsize-4)]
     #开始dmrg
     standard_dmrg(
-        hubbard, spin_sector, 175, dkeep, measures
+        hubbard, spin_sector, 20, dkeep, measures
     )
 
 

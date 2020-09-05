@@ -2,12 +2,14 @@
 包含DMRG的sweep的函数
 """
 
+import time
 import numpy
 import scipy.sparse
-from dmrghelpers.superblockhelper import extend_merge_to_superblock
-from dmrghelpers.superblockhelper import leftext_hamiltonian_to_superblock
-from dmrghelpers.superblockhelper import rightext_hamiltonian_to_superblock
-from dmrghelpers.hamhelper import plus_two_hamiltonian
+from fermionic.prodop import SuperVec
+from dmrghelpers.superblockhelper2 import merge_left_and_right_ham
+from dmrghelpers.superblockhelper2 import superham_add_hopping_term
+from dmrghelpers.superblockhelper2 import superop_apply_to_supervec
+from dmrghelpers.superblockhelper2 import lanczos
 from lattice import BaseModel
 from .storages import BlockStorage
 
@@ -24,16 +26,9 @@ def get_superblock_ham(
     leftham = leftstorage.hamiltonian
     rightext = rightstorage.block
     rightham = rightstorage.hamiltonian
-    superext = extend_merge_to_superblock(leftext, rightext)
-    #print(superext)
-    #把左边的哈密顿量扩展到superblock
-    lefthamext = leftext_hamiltonian_to_superblock(superext, leftham)
-    #把右边的哈密顿量扩展到superblock
-    righthamext = rightext_hamiltonian_to_superblock(superext, rightham)
-    #把两个结果加起来
-    superham = plus_two_hamiltonian(lefthamext, righthamext)
-    del lefthamext
-    del righthamext
+    #
+    superham2 = merge_left_and_right_ham(leftham, rightham)
+    superext = superham2.basis
     #把bond加起来
     op_dict = {}
     for bond in bonds:
@@ -60,8 +55,17 @@ def get_superblock_ham(
         #Issue #16: 现在不需要扩展到superblock上的算符
         #只需要在ext上面的算符，op_dict以后也没有用了
         coef_t = model.get_t_coef(op1_idx, op2_idx)
-        superham.superblock_add_hopping_term(op1up, op2up, coef_t)
-        superham.superblock_add_hopping_term(op1down, op2down, coef_t)
+        superham_add_hopping_term(superham2, op1up, op2up, coef_t)
+        superham_add_hopping_term(superham2, op1down, op2down, coef_t)
+        #superham2.add_op_pair(op1up.mat, op2up.mat.transpose(), True)
+        #superham2.add_op_pair(op1down.mat, op2down.mat.transpose(), True)
+    #
+    #assert numpy.allclose(superham.mat.toarray(), superham2.mat.toarray())
+    #nonz = superham.mat - superham2.mat
+    #nonz.eliminate_zeros()
+    #ls, rs = nonz.nonzero()
+    #print(superham.mat[ls[0], rs[0]])
+    #print(superham2.ele(ls[0], rs[0]))
     #找到符合sector的所有idx
     sector_idxs = []
     for stcode in superext.iter_sitecode():
@@ -73,9 +77,7 @@ def get_superblock_ham(
         if nspin[0] == spin_sector[0] and nspin[1] == spin_sector[1]:
             sector_idxs.append(superidx)
     #
-    #print('len', len(sector_idxs))
-    mat = superham.get_block(sector_idxs)
-    return sector_idxs, mat, superext
+    return sector_idxs, superham2, superext
 
 
 def get_density_root(
