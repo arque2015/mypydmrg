@@ -88,9 +88,39 @@ def leftblock_to_next(
     newiu = create_operator_of_site(leftext.stbss, OperFactory.create_u())
     newiu = leftsite_extend_oper(leftext, newiu)
     hamleft.add_u_term(newiu, conf.model.coef_u)
+    #构建Mu项并扩展，然后添加到哈密顿量
+    coef_mu = conf.model.get_coef_mu(phi_idx)
+    if coef_mu != 0:
+        newnu = create_operator_of_site(leftext.stbss, OperFactory.create_numup())
+        newnu = leftsite_extend_oper(leftext, newnu)
+        hamleft.add_mu_term(newnu, coef_mu)
+        newnd = create_operator_of_site(leftext.stbss, OperFactory.create_numdown())
+        newnd = leftsite_extend_oper(leftext, newnd)
+        hamleft.add_mu_term(newnd, coef_mu)
     ### 开始从leftext升级到下一个left
     #调用get_phival_from_hamleft，得到能量本正值
-    phival = get_phival_from_hamleft(hamleft, leftext, conf.nrg_max_keep)
+    #获得相应的自旋sector限制
+    if phi_idx <= numpy.floor_divide(conf.model.size, 2):
+        sector = None
+    else:
+        sector = []
+        sp1min = conf.spin_sector[0] - (conf.model.size - phi_idx)
+        if sp1min < 0:
+            sp1min = 0
+        sp1max = conf.spin_sector[0]
+        sp2min = conf.spin_sector[1] - (conf.model.size - phi_idx)
+        if sp2min < 0:
+            sp2min = 0
+        sp2max = conf.spin_sector[1]
+        for se1 in range(sp1min, sp1max + 1):
+            for se2 in range(sp2min, sp2max + 1):
+                sector.append((se1, se2))
+    phival = get_phival_from_hamleft(
+        hamleft,
+        leftext,
+        conf.nrg_max_keep,
+        restrict_sector=sector
+    )
     #给leftext升级成新的基，这个时候phival其实没什么用
     #但fermionic在DEBUG_MODE下会解出basis在fock_basis下的系数，这个是需要的
     newleft = update_to_leftblock(leftext, phival)
@@ -103,7 +133,7 @@ def leftblock_to_next(
         if meas[1] == phi_idx:#如果是这次新加的格子，就创建一个而不是读取
             meaop = create_operator_of_site(
                 leftext.stbss,
-                OperFactory.create_measure(meas[0])
+                OperFactory.create_by_name(meas[0])
             )
             meaop = leftsite_extend_oper(leftext, meaop)
         else:

@@ -8,6 +8,7 @@ from fermionic.block import LeftBlockExtend, LeftBlock
 from fermionic.block import RightBlockExtend, RightBlock
 from fermionic.baseop import Hamiltonian
 from .operhelper import SINGLE_SITE_INTERACT_U
+from .operhelper import SINGLE_SITE_NUMBER_UP, SINGLE_SITE_NUMBER_DOWN
 
 
 def create_hamiltonian_of_site(basis, coef_u, coef_mu):
@@ -15,7 +16,9 @@ def create_hamiltonian_of_site(basis, coef_u, coef_mu):
     #用稀疏矩阵换掉
     #先不实现mu
     mat = scipy.sparse.csr_matrix(coef_u * SINGLE_SITE_INTERACT_U)
-    mat = mat.tocsr()
+    if coef_mu != 0:
+        mat += scipy.sparse.csr_matrix(coef_mu * SINGLE_SITE_NUMBER_UP)
+        mat += scipy.sparse.csr_matrix(coef_mu * SINGLE_SITE_NUMBER_DOWN)
     return Hamiltonian(basis, mat)
 
 
@@ -82,7 +85,7 @@ def update_rightblockextend_hamiltonian(
     return Hamiltonian(rblk, mat)
 
 
-def plus_two_hamiltonian(ham1 :Hamiltonian, ham2: Hamiltonian):
+def plus_two_hamiltonian(ham1: Hamiltonian, ham2: Hamiltonian):
     '''把两个哈密顿量加在一起，生成一个新的哈密顿量'''
     if ham1.basis.dim != ham2.basis.dim:
         raise ValueError('不在同一个基上')

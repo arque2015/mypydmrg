@@ -10,11 +10,11 @@ from dmrg.dmrg_init import init_first_site, prepare_rightblockextend
 from dmrg.nrg_iter import leftblock_to_next
 from dmrg.dmrg_right_to_left import rightblockextend_to_next
 from dmrg.dmrg_left_to_right import leftblockextend_to_next
-from dmrg.dmrg_measure import measure_oper_of_site, measure_corr_of_2sites
+from dmrg.dmrg_measure import measure_oper_of_site, measure_corr_of_2sites, measure_corr_of_sz
 
 def standard_dmrg(
         model: BaseModel,
-        spin_sector: Tuple[int, int], 
+        spin_sector: Tuple[int, int],
         nrg_max_keep: int,
         dmrg_max_keep: List[int],
         measures: List[Tuple[str, int]]
@@ -39,8 +39,9 @@ def standard_dmrg(
     meas_tmp = [corpair for corpair in measures\
         if corpair[1] in [model.sites[0], model.sites[-1]]]
     dconf = init_first_site(model, nrg_max_keep, meas_tmp)
+    dconf.spin_sector = spin_sector
     #一共进行多少个sweep
-    sweep_num = 2
+    sweep_num = 3
     #
     #开始warm up, nrg_iter是从一个leftblock到下一个leftblock
     #这个过程中，把leftblockext生成成功并且保存到DMRGConfig
@@ -196,15 +197,32 @@ def standard_dmrg(
         #print(dconf)
     #整个sweep结束以后的一些工作
     #算一下几个位置的关联函数
-    for idx in range(1, len(measures)+1):
+    for mea1 in measures:
         #leftext最大的格子在phi_idx+1
         #注意这里有一个问题，最后一个superblock是由3-4-5-6构成的
         #但是并没有求出这个时候的基态，因为不需要更新leftblock[4]这个基
         #也就是说最后一次是在leftext[2]上计算的，
         #用来升级成leftblock[3]并自动扩展成leftext[3]
-        val = measure_oper_of_site(dconf, 'sz', idx)
-        print('Sz_%d' % idx, val)
-        #关联
-        for idx2 in range(1, len(measures)+1):
-            val = measure_corr_of_2sites(dconf, 'sz', idx, idx2)
-            print('Sz_%dSz_%d' % (idx, idx2), val)
+        val = measure_oper_of_site(dconf, mea1[0], mea1[1])
+        print('%s_%d' % (mea1[0], mea1[1]), val)
+        ##关联
+        for mea2 in measures:
+            if mea1[0][0] != mea2[0][0]:
+                continue
+            if mea1[0] in ['cu', 'cd']:
+                trans2 = True
+            else:
+                break
+            val = measure_corr_of_2sites(
+                dconf, mea1[0], mea2[0], mea1[1], mea2[1], trans2=trans2
+            )
+            print(
+                '{0}_{2}{1}_{3}'.\
+                    format(mea1[0], mea2[0], mea1[1], mea2[1]),
+                val
+            )
+    ##Sz关联
+    for st1 in range(1, 7):
+        for st2 in range(1, 7):
+            val = measure_corr_of_sz(dconf, st1, st2)
+            print('Sz_%dSz_%d' % (st1, st2), val)

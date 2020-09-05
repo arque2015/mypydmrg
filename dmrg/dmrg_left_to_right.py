@@ -104,7 +104,7 @@ def leftblockextend_to_next(
             #新建一个观测用的算符
             meaop = create_operator_of_site(
                 newleftext.stbss,
-                OperFactory.create_measure(prefix)
+                OperFactory.create_by_name(prefix)
             )
             #扩展到leftext[phi_idx]上
             meaop = leftsite_extend_oper(newleftext, meaop)
@@ -141,6 +141,15 @@ def leftblockextend_to_next(
     newiu = create_operator_of_site(newleftext.stbss, OperFactory.create_u())
     newiu = leftsite_extend_oper(newleftext, newiu)
     newhamext.add_u_term(newiu, conf.model.coef_u)
+    #把新的格子的Mu项添加进去
+    coef_mu = conf.model.get_coef_mu(phi_idx+1)
+    if coef_mu != 0:
+        newnu = create_operator_of_site(newleftext.stbss, OperFactory.create_numup())
+        newnu = leftsite_extend_oper(newleftext, newnu)
+        newhamext.add_mu_term(newnu, coef_mu)
+        newnd = create_operator_of_site(newleftext.stbss, OperFactory.create_numdown())
+        newnd = leftsite_extend_oper(newleftext, newnd)
+        newhamext.add_mu_term(newnd, coef_mu)
     #保存需要保存的算符
     for extidx in extoper_storage:
         conf.storage_leftext_oper(phi_idx, maintain_dict[extidx][0])
